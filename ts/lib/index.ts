@@ -11,7 +11,7 @@ import { MEM, decodeText, initMemoryObjects } from "./base/mem";
 import { __setTexture, __setTextureData } from "./texture";
 import { addStatsView, updateStatsText } from "./dev/stats";
 import { createExportMap, importZigFunctions } from "../_bridge";
-import { createFont, drawText, getFontStatus } from "./font";
+import { drawText } from "./font";
 
 let { sin, cos, pow, atan2 } = Math;
 
@@ -23,11 +23,7 @@ export const importMap = createExportMap({
   _playUserAudioBuffer: playUserAudioBuffer,
   _setTexture: __setTexture,
   _setTextureData: __setTextureData,
-  _setupPass: (id: u32) => {
-    id ? setupBlendPass() : setupOpaquePass();
-  },
-  _createFont: createFont,
-  _getFontStatus: getFontStatus,
+  _setupPass: (id: u32): void => (id ? setupBlendPass() : setupOpaquePass()),
   _drawText: drawText,
   _sin: sin,
   _cos: cos,

@@ -35,11 +35,11 @@ pub fn render() void {
 
     bg.render();
 
-    const font = gfx.Font{ .id = 0 };
-    if (font.status() != 0) {
+    // draw text
+    {
         gfx.setTexture(1);
         var buffer: [128 * 128 * 4]u8 = undefined;
-        const image = font.draw("F#CK OFF\nzаебал", &buffer);
+        const image = gfx.drawText("START GAME", &buffer);
         gfx.setTextureData(.{
             .id = 1,
             .w = image.w,
@@ -54,10 +54,9 @@ pub fn render() void {
         //gfx.state.z = 4;
         gfx.state.matrix = Mat2d.identity();
         gfx.quad(Vec2.splat(200), Vec2.fromIntegers(image.w, image.h), 0xFFFFFFFF);
-
-        gfx.setTexture(0);
     }
 
+    gfx.setTexture(0);
     const aabb1 = AABB.init(400, 400, 400, 400);
 
     if (pointers.primary()) |p| {

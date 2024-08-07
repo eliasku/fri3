@@ -25,12 +25,6 @@ const imports: Record<string, any> = {
   log: {
     sig: "(msg_ptr: [*]const u8, msg_len: usize) void",
   },
-  createFont: {
-    sig: "(input: *const anyopaque) u32",
-  },
-  getFontStatus: {
-    sig: "(id: u32) u32",
-  },
   drawText: {
     sig: "(input: *const anyopaque, output: *anyopaque) void",
   },

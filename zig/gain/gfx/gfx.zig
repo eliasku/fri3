@@ -298,7 +298,6 @@ pub fn lineQuad(start: Vec2, end: Vec2, color1: u32, color2: u32, width1: f32, w
 // font internals
 
 pub const DrawTextInput = extern struct {
-    font_id: u32,
     text: CRange,
     buffer: [*]u8,
 };
@@ -314,51 +313,22 @@ const DrawTextResult = struct {
     pixels: []u8,
 };
 
-pub const Font = struct {
-    id: u32,
-
-    const Self = @This();
-
-    pub fn init(family: []const u8, url: []const u8) Self {
-        const desc: extern struct {
-            family: CRange,
-            url: CRange,
-        } = .{
-            .family = CRange.fromSlice(family),
-            .url = CRange.fromSlice(url),
-        };
-        var id: u32 = 0;
-        if (js.enabled) {
-            id = js.createFont(@ptrCast(&desc));
-        }
-        return .{ .id = id };
+pub fn drawText(text: []const u8, buffer: [*]u8) DrawTextResult {
+    var output: DrawTextCallResult = .{
+        .w = 0,
+        .h = 0,
+    };
+    if (js.enabled) {
+        js.drawText(&.{
+            .text = CRange.fromSlice(text),
+            .buffer = buffer,
+        }, &output);
     }
-
-    pub fn status(self: Self) u32 {
-        if (js.enabled) {
-            return js.getFontStatus(self.id);
-        }
-        return 0;
-    }
-
-    pub fn draw(self: Self, text: []const u8, buffer: [*]u8) DrawTextResult {
-        var output: DrawTextCallResult = .{
-            .w = 0,
-            .h = 0,
-        };
-        if (js.enabled) {
-            js.drawText(&.{
-                .font_id = self.id,
-                .text = CRange.fromSlice(text),
-                .buffer = buffer,
-            }, &output);
-        }
-        const w = output.w;
-        const h = output.h;
-        return .{
-            .w = w,
-            .h = h,
-            .pixels = buffer[0..(w * h * 4)],
-        };
-    }
-};
+    const w = output.w;
+    const h = output.h;
+    return .{
+        .w = w,
+        .h = h,
+        .pixels = buffer[0..(w * h * 4)],
+    };
+}

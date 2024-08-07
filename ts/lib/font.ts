@@ -1,61 +1,20 @@
 import { MEM, decodeText } from "./base/mem";
 
-interface FontResource {
-  _face: FontFace;
-}
-
-export const fonts: FontResource[] = [];
-
-const loadFont = async (id: u32) => {
-  const face = fonts[id]._face;
-  let n = 3;
-  while (n > 0) {
-    try {
-      await face.load();
-      document.fonts.add(face);
-      return;
-    } catch {
-      --n;
-    }
-  }
-};
-
-export const createFont = (input: Ptr<void>): u32 => {
-  const u32s = new Uint32Array(MEM.buffer);
-  const family = decodeText(u32s[input >> 2], u32s[(input >> 2) + 1]);
-  const url = decodeText(u32s[(input >> 2) + 2], u32s[(input >> 2) + 3]);
-  const id = fonts.length;
-  const face = new FontFace(family, `url(${url})`);
-  // const face = new FontFace(family, url);
-  const font: FontResource = {
-    _face: face,
-  };
-  fonts[id] = font;
-  loadFont(id);
-  return id;
-};
-
-export const getFontStatus = (id: u32): u32 => {
-  return fonts[id]._face.status === "loaded" ? 1 : 0;
-};
-
 const canvas = document.createElement("canvas");
 canvas.width = canvas.height = 128;
-let ctx = canvas.getContext("2d", { willReadFrequently: !!canvas });
+let ctx = canvas.getContext("2d")!;
 
 export const drawText = (input_ptr: Ptr<void>, output_ptr: Ptr<void>): void => {
   const u32s = new Uint32Array(MEM.buffer);
-  const fontId = u32s[input_ptr >> 2];
-  const textPtr = u32s[(input_ptr >> 2) + 1];
-  const textLen = u32s[(input_ptr >> 2) + 2];
+  const textPtr = u32s[input_ptr >> 2];
+  const textLen = u32s[(input_ptr >> 2) + 1];
   const text = decodeText(textPtr, textLen);
-  const bufferPtr = u32s[(input_ptr >> 2) + 3];
+  const bufferPtr = u32s[(input_ptr >> 2) + 2];
 
   const outPixelsWidthIdx = output_ptr >> 2;
   const outPixelsHeightIdx = (output_ptr >> 2) + 1;
 
-  const face = fonts[fontId]._face;
-  ctx.font = `${"normal"} ${"normal"} ${16}px ${face.family}`;
+  ctx.font = `normal normal 16px Arial Black`;
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
   ctx.fillStyle = "white";

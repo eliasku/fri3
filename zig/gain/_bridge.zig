@@ -34,26 +34,20 @@ pub const Imports = if (enabled) struct {
 	extern "0" fn f(msg_ptr: [*]const u8, msg_len: usize) void;
 	pub const log = f;
 
-	extern "0" fn g(input: *const anyopaque) u32;
-	pub const createFont = g;
+	extern "0" fn g(input: *const anyopaque, output: *anyopaque) void;
+	pub const drawText = g;
 
-	extern "0" fn h(id: u32) u32;
-	pub const getFontStatus = h;
+	extern "0" fn h(x: f32) f32;
+	pub const sin = h;
 
-	extern "0" fn i(input: *const anyopaque, output: *anyopaque) void;
-	pub const drawText = i;
+	extern "0" fn i(x: f32) f32;
+	pub const cos = i;
 
-	extern "0" fn j(x: f32) f32;
-	pub const sin = j;
+	extern "0" fn j(x: f32, y: f32) f32;
+	pub const pow = j;
 
-	extern "0" fn k(x: f32) f32;
-	pub const cos = k;
-
-	extern "0" fn l(x: f32, y: f32) f32;
-	pub const pow = l;
-
-	extern "0" fn m(x: f32, y: f32) f32;
-	pub const atan2 = m;
+	extern "0" fn k(x: f32, y: f32) f32;
+	pub const atan2 = k;
 
     pub const enabled = true;
 } else struct {
