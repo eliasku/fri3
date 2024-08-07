@@ -1,9 +1,7 @@
 import * as fs from "node:fs/promises";
 
 const zigExports: Record<string, any> = {
-  onSetup: {},
-  onFirstFrame: {},
-  onFrame: {},
+  onFrameRequest: {},
   onPointerEvent: {},
   onKeyboardEvent: {},
 };

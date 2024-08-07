@@ -80,7 +80,7 @@ pub fn render() void {
     gfx.state.z = 100;
     gfx.state.matrix = view;
     gfx.state.color = 0xFFFFFFFF;
-    const t = app.t;
+    const t: f32 = @as(f32, @floatFromInt(app.tic)) * 0.08;
 
     // render_game();
 

@@ -4,19 +4,15 @@ const builtin = @import("builtin");
 pub const enabled = builtin.cpu.arch == .wasm32 and builtin.os.tag == .freestanding;
 
 pub const identifiers = .{
-	"a", // _onSetup
-	"b", // _onFirstFrame
-	"c", // _onFrame
-	"d", // _onPointerEvent
-	"e", // _onKeyboardEvent
+	"a", // _onFrameRequest
+	"b", // _onPointerEvent
+	"c", // _onKeyboardEvent
 };
 
 pub fn declareExports(comptime functions: type) void {
-	@export(functions.onSetup, .{ .name = "a" });
-	@export(functions.onFirstFrame, .{ .name = "b" });
-	@export(functions.onFrame, .{ .name = "c" });
-	@export(functions.onPointerEvent, .{ .name = "d" });
-	@export(functions.onKeyboardEvent, .{ .name = "e" });
+	@export(functions.onFrameRequest, .{ .name = "a" });
+	@export(functions.onPointerEvent, .{ .name = "b" });
+	@export(functions.onKeyboardEvent, .{ .name = "c" });
 }
 
 pub const Imports = if (enabled) struct {

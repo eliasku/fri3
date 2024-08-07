@@ -1,10 +1,8 @@
 
 export const importZigFunctions = (exports: WebAssembly.Exports) => ({
-	_onSetup: exports.a as any,
-	_onFirstFrame: exports.b as any,
-	_onFrame: exports.c as any,
-	_onPointerEvent: exports.d as any,
-	_onKeyboardEvent: exports.e as any,
+	_onFrameRequest: exports.a as any,
+	_onPointerEvent: exports.b as any,
+	_onKeyboardEvent: exports.c as any,
     _memory: exports.memory as WebAssembly.Memory,
 });
 

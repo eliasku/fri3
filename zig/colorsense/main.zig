@@ -11,6 +11,15 @@ const bg = @import("background.zig");
 // Base Resolution : 360 x 480
 
 pub fn update() void {
+    bg.update();
+    if (pointers.primary()) |p| {
+        if (p.down) {
+            bg.click(p.start.center());
+        }
+    }
+}
+
+pub fn render() void {
     const app_size = app.size();
 
     gfx.setupOpaquePass();
@@ -24,7 +33,7 @@ pub fn update() void {
     gfx.setupBlendPass();
     gfx.setTexture(0);
 
-    bg.update();
+    bg.render();
 
     const font = gfx.Font{ .id = 0 };
     if (font.status() != 0) {
@@ -48,19 +57,6 @@ pub fn update() void {
 
         gfx.setTexture(0);
     }
-
-    if (pointers.primary()) |p| {
-        if (p.down) {
-            bg.click(p.start.center());
-        }
-    }
-
-    // canvas.state.z = 3;
-    // canvas.fillCircle(app_size.scale(0.5), Vec2.splat(300), 19, 0x7EFFFFFF);
-    // canvas.state.z = 4;
-    // canvas.fillCircle(app_size.scale(0.5), Vec2.splat(200), 19, 0xFFFF0000);
-    // // canvas.state.z = 5;
-    // canvas.fillCircle(app_size.scale(0.5), Vec2.splat(100), 19, 0xFE00FF00);
 
     const aabb1 = AABB.init(400, 400, 400, 400);
 

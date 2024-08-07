@@ -39,9 +39,9 @@ var cursor = struct {
 }{};
 
 pub fn update() void {
-    const dt = gain.app.dt;
     const size = gain.app.size();
     const screenScale = size.y / 480.0;
+    const dt = 0.08;
     for (rays[0..]) |*p| {
         p.p = p.p.add(p.v.scale(dt * screenScale));
         p.time += dt;
@@ -62,24 +62,6 @@ pub fn update() void {
             }
             p.alpha = rnd.frange(0.05, 0.1);
             p.scale = rnd.frange(2, 5);
-        }
-    }
-
-    gfx.state.color_add = 0xFF000000;
-    for (rays) |p| {
-        if (p.time < p.timeTotal) {
-            const r = p.time / p.timeTotal;
-            gfx.state.matrix = Mat2d.identity();
-            gfx.state.matrix = gfx.state.matrix.rotate(-std.math.pi / 4.0);
-            gfx.state.matrix.pos = p.p;
-            const color = Color32.fromFloats(1, 1, 1, p.alpha * mathf.sin(r * std.math.pi)).argb();
-            gfx.quadColors(
-                Vec2.init(-0.75, 0).scale(p.scale * screenScale),
-                Vec2.init(1.5, 80).scale(p.scale * screenScale),
-                .{
-                    color, color, 0xFFFFFF, 0xFFFFFF,
-                },
-            );
         }
     }
 
@@ -114,6 +96,39 @@ pub fn update() void {
         }
     }
 
+    if (cursor.time < 1.0) {
+        // cursor.time += dt * 2.0;
+        cursor.time += dt;
+    }
+}
+
+pub fn click(pos: Vec2) void {
+    cursor.pos = pos;
+    cursor.time = 0;
+}
+
+pub fn render() void {
+    const size = gain.app.size();
+    const screenScale = size.y / 480.0;
+
+    gfx.state.color_add = 0xFF000000;
+    for (rays) |p| {
+        if (p.time < p.timeTotal) {
+            const r = p.time / p.timeTotal;
+            gfx.state.matrix = Mat2d.identity();
+            gfx.state.matrix = gfx.state.matrix.rotate(-std.math.pi / 4.0);
+            gfx.state.matrix.pos = p.p;
+            const color = Color32.fromFloats(1, 1, 1, p.alpha * mathf.sin(r * std.math.pi)).argb();
+            gfx.quadColors(
+                Vec2.init(-0.75, 0).scale(p.scale * screenScale),
+                Vec2.init(1.5, 80).scale(p.scale * screenScale),
+                .{
+                    color, color, 0xFFFFFF, 0xFFFFFF,
+                },
+            );
+        }
+    }
+
     gfx.state.color_add = 0xFF000000;
     for (dust) |p| {
         if (p.time < p.timeTotal) {
@@ -133,28 +148,19 @@ pub fn update() void {
     }
 
     if (cursor.time < 1.0) {
-        // cursor.time += dt * 2.0;
-        cursor.time += dt;
-        if (cursor.time < 1.0) {
-            const r = cursor.time;
-            gfx.state.matrix = Mat2d.identity();
-            const scale = 16 * (1 - (1 - r) * (1 - r));
-            const alpha = 1 - r * r;
-            const color = Color32.lerp8888(0x00000000, 0xFFFFFFFF, alpha);
-            const color2 = Color32.lerp8888(0x00000000, 0xFFFFFF, alpha);
-            const radius = scale * screenScale;
-            gfx.fillCircleEx(
-                cursor.pos,
-                Vec2.splat(radius),
-                getCircleSegments(radius),
-                color,
-                color2,
-            );
-        }
+        const r = cursor.time;
+        gfx.state.matrix = Mat2d.identity();
+        const scale = 16 * (1 - (1 - r) * (1 - r));
+        const alpha = 1 - r * r;
+        const color = Color32.lerp8888(0x00000000, 0xFFFFFFFF, alpha);
+        const color2 = Color32.lerp8888(0x00000000, 0xFFFFFF, alpha);
+        const radius = scale * screenScale;
+        gfx.fillCircleEx(
+            cursor.pos,
+            Vec2.splat(radius),
+            getCircleSegments(radius),
+            color,
+            color2,
+        );
     }
-}
-
-pub fn click(pos: Vec2) void {
-    cursor.pos = pos;
-    cursor.time = 0;
 }

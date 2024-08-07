@@ -1,5 +1,5 @@
-import frag from './blend.frag.glsl';
-import vert from './blend.vert.glsl';
-import { createProgramObject } from './program';
+import frag from "./blend.frag.glsl";
+import vert from "./common.vert.glsl";
+import { createProgramObject } from "./program";
 
 export const blendProgram = createProgramObject(vert, frag);

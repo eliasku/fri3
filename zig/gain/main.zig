@@ -10,9 +10,7 @@ pub const math = @import("./math/main.zig");
 pub const js = @import("./js.zig");
 pub const wasm = @import("./wasm.zig");
 pub const console = @import("./console.zig");
-pub const dirty_trig = @import("./p/sin_b1.zig");
-pub const dirty_pow = @import("./p/fast_pow.zig");
-// temp: move to library
+
 pub const zzfx = @import("./p/zzfx.zig");
 
 //pub usingnamespace if (builtin.mode == .ReleaseSmall) struct {
@@ -30,42 +28,23 @@ pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_
 
 //} else struct {};
 
-pub inline fn configure(comptime init: fn () void, comptime update: fn () void) void {
+pub inline fn configure(comptime update: fn () void, comptime render: fn () void) void {
     const A = struct {
-        export fn onSetup() void {
-            // if (builtin.cpu.arch.isWasm()) {
-            //     allocator = std.heap.wasm_allocator;
-            // } else {
-            //     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-            //     //defer std.testing.expect(gpa.deinit() == .ok) catch @panic("leak");
-            //     allocator = gpa.allocator();
-            // }
-            // keyboard.setup();
-        }
-
-        export fn onFirstFrame(t: f32, w: u32, h: u32) void {
+        export fn onFrameRequest(total_steps: f32, w: u32, h: u32) void {
             app.w = w;
             app.h = h;
-            app.time_prev = t;
-            app.t = t;
-            app.tic = 0;
 
-            init();
-        }
-
-        export fn onFrame(t: f32, w: u32, h: u32) void {
-            app.w = w;
-            app.h = h;
-            app.t = t;
-            app.dt = t - app.time_prev;
-            app.time_prev = t;
-            app.tic += 1;
+            var steps_left = total_steps;
+            while (steps_left != 0) {
+                update();
+                app.tic += 1;
+                steps_left -= 1;
+                pointers.reset();
+            }
 
             gfx.beginFrame();
-            update();
+            render();
             gfx.endFrame();
-
-            pointers.reset();
         }
 
         export fn onPointerEvent(id: u32, primary: u32, buttons: u32, event: u32, device: u32, x: f32, y: f32, w: f32, h: f32) void {

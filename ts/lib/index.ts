@@ -40,29 +40,28 @@ export const run = (instance: WebAssembly.Instance) => {
     addStatsView();
   }
 
-  const zig = importZigFunctions(instance.exports);
-  const raf = requestAnimationFrame;
+  let zig = importZigFunctions(instance.exports);
+  initMemoryObjects(zig._memory);
+  setupInput(zig._onPointerEvent, zig._onKeyboardEvent);
 
+  let raf = requestAnimationFrame;
+  let accum = 0;
+  let prev = performance.now();
   const onFrame = (ts: DOMHighResTimeStamp) => {
-    const w = gl.drawingBufferWidth;
-    const h = gl.drawingBufferHeight;
-    beginFrame(w, h);
-    zig._onFrame(ts / 1e3, w, h);
-    if (import.meta.env.DEV) {
-      updateStatsText(ts);
+    accum += ts - prev;
+    prev = ts;
+    let steps = accum >> 3;
+    accum -= steps << 3;
+    if (steps) {
+      const w = gl.drawingBufferWidth;
+      const h = gl.drawingBufferHeight;
+      beginFrame(w, h);
+      zig._onFrameRequest(steps, w, h);
+      if (import.meta.env.DEV) {
+        updateStatsText(ts);
+      }
     }
     raf(onFrame);
   };
-
-  const onFirstFrame = (ts: DOMHighResTimeStamp) => {
-    const w = gl.drawingBufferWidth;
-    const h = gl.drawingBufferHeight;
-    zig._onFirstFrame(ts / 1e3, w, h);
-    raf(onFrame);
-  };
-
-  initMemoryObjects(zig._memory);
-  setupInput(zig._onPointerEvent, zig._onKeyboardEvent);
-  zig._onSetup();
-  raf(onFirstFrame);
+  raf(onFrame);
 };
