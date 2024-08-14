@@ -12,40 +12,39 @@ const Rnd = gain.math.Rnd;
 const pi = std.math.pi;
 const W = 512.0;
 
+const zzfx = gain.zzfx;
+const sfx = [_]zzfx.ZzfxParameters{
+    .{
+        .volume = 1.09,
+        .frequency = 1474,
+        .attack = 0.02,
+        .sustain = 0.03,
+        .release = 0.14,
+        .shape = 1,
+        .shapeCurve = 1.87,
+        .slide = 0.3,
+        .noise = 0.1,
+        .sustainVolume = 0.75,
+    },
+    zzfx.ZzfxParameters.fromSlice(.{
+        1.24, 0.05, 110, 0.02, 0.01, 0.01, 2, 1.1, 0, 0, -40, 0.09, 0, 0, 0, 0, 0, 0.21, 0.01, 0,
+    }),
+    zzfx.ZzfxParameters.fromSlice(.{
+        1, 0.05, 81, 0.03, 0.04, 0.1, 0, 1.82, 2.5, 0.5, 0, 0, 0, 0, 0, 0, 0, 0.72, 0.07, 0,
+    }),
+    zzfx.ZzfxParameters.fromSlice(.{
+        2.77, 0.05, 91, 0, 0.01, 0.08, 4, 1.7, 0, 0, 0, 0, 0, 0.3, 0, 10, 0.18, 0.72, 0, 0.24,
+    }),
+    zzfx.ZzfxParameters.fromSlice(.{
+        1.9, 0.05, 307, 0, 0.12, 0.26, 0, 0.38, 0, 0, 187, 0.03, 0.12, 0, 0, 0, 0.14, 0.56, 0.14, 0,
+    }),
+    zzfx.ZzfxParameters.fromSlice(.{
+        1.03, 0.35, 382, 0.01, 0.04, 0.07, 3, 0.76, -7.5, 4.9, 0, 0, 0, 1.3, 0, 0, 0, 0.85, 0.01, 0,
+        //1, 0, 382, 0.01, 0.04, 0.07, 3, 0.76, -7.5, 4.9, 0, 0, 0, 1.3, 0, 0, 0, 0.85, 0.01, 0,
+    }),
+};
+
 pub fn update() void {
-    const zzfx = gain.zzfx;
-    const sfx = [_]zzfx.ZzfxParameters{
-        .{
-            .volume = 1.09,
-            .frequency = 1474,
-            .attack = 0.02,
-            .sustain = 0.03,
-            .release = 0.14,
-            .shape = 1,
-            .shapeCurve = 1.87,
-            .slide = 0.3,
-            .noise = 0.1,
-            .sustainVolume = 0.75,
-        },
-        zzfx.ZzfxParameters.fromSlice(.{
-            1.24, 0.05, 110, 0.02, 0.01, 0.01, 2, 1.1, 0, 0, -40, 0.09, 0, 0, 0, 0, 0, 0.21, 0.01, 0,
-        }),
-        zzfx.ZzfxParameters.fromSlice(.{
-            1, 0.05, 81, 0.03, 0.04, 0.1, 0, 1.82, 2.5, 0.5, 0, 0, 0, 0, 0, 0, 0, 0.72, 0.07, 0,
-        }),
-        zzfx.ZzfxParameters.fromSlice(.{
-            2.77, 0.05, 91, 0, 0.01, 0.08, 4, 1.7, 0, 0, 0, 0, 0, 0.3, 0, 10, 0.18, 0.72, 0, 0.24,
-        }),
-        zzfx.ZzfxParameters.fromSlice(.{
-            1.9, 0.05, 307, 0, 0.12, 0.26, 0, 0.38, 0, 0, 187, 0.03, 0.12, 0, 0, 0, 0.14, 0.56, 0.14, 0,
-        }),
-
-        zzfx.ZzfxParameters.fromSlice(.{
-            1.03, 0.35, 382, 0.01, 0.04, 0.07, 3, 0.76, -7.5, 4.9, 0, 0, 0, 1.3, 0, 0, 0, 0.85, 0.01, 0,
-            //1, 0, 382, 0.01, 0.04, 0.07, 3, 0.76, -7.5, 4.9, 0, 0, 0, 1.3, 0, 0, 0, 0.85, 0.01, 0,
-        }),
-    };
-
     if (app.tic % 20 == 0) {
         var audio_buffer: [8 * 4096]f32 = undefined;
         const index = (app.tic % 120) / 20;
@@ -129,7 +128,7 @@ pub fn render() void {
         gfx.quad(
             sz.scale(-0.5),
             sz,
-            Color32.fromFloats(1, 1, 0.5 + 0.5 * rnd0.float(), 0.5 + 0.5 * gain.math.sin(t * std.math.tau)).argb(),
+            Color32.fromFloats(1, 1, 0.5 + 0.5 * rnd0.float(), 0.5 + 0.5 * gain.math.sintau(t)).argb(),
         );
     }
 }

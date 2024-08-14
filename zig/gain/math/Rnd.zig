@@ -39,6 +39,17 @@ fn unorm_f32_from_u32(value: u32) f32 {
     return f - 1.0;
 }
 
+// pub fn next(self: *Self) u32 {
+//     var x = self.*.seed;
+//     x = (x *% 1664525) +% 1013904223;
+//     self.seed = x;
+//     return x;
+// }
+
+// pub fn float(self: *Self) f32 {
+//     return @as(f32, @floatFromInt(self.next())) / 0x100000000;
+// }
+
 test "rand" {
     const expect = @import("std").testing.expect;
     var rnd = Self{ .seed = 0 };

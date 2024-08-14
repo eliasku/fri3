@@ -30,7 +30,7 @@ pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_
 
 pub inline fn configure(comptime update: fn () void, comptime render: fn () void) void {
     const A = struct {
-        export fn onFrameRequest(total_steps: f32, w: u32, h: u32) void {
+        export fn onFrameRequest(total_steps: u32, w: u32, h: u32) void {
             app.w = w;
             app.h = h;
 
