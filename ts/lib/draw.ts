@@ -50,9 +50,9 @@ const setupProgram = (program: Program) => {
   if (program._uImage0) {
     gl.uniform1i(program._uImage0, 0);
   }
-  if (program._uResolution) {
-    gl.uniform2f(program._uResolution, viewportW, viewportH);
-  }
+  // if (program._uResolution) {
+  //   gl.uniform2f(program._uResolution, viewportW, viewportH);
+  // }
   currentProgram = program;
 };
 

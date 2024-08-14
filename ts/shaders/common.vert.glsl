@@ -1,17 +1,17 @@
-attribute vec3 aPosition;
-attribute vec2 aTexCoord;
-attribute vec4 aColorMul;
-attribute vec4 aColorAdd;
+attribute vec3 x;
+attribute vec2 y;
+attribute vec4 z;
+attribute vec4 w;
 
-uniform mat4 uMVP;
+uniform mat4 m;
 
-varying vec2 vTexCoord;
-varying vec4 vColorMul;
-varying vec4 vColorAdd;
+varying vec2 a;
+varying vec4 b;
+varying vec4 c;
 
 void main() {
-    vTexCoord = aTexCoord;
-    vColorMul = aColorMul;
-    vColorAdd = aColorAdd;
-    gl_Position = uMVP * vec4(aPosition, 1.0);
+    a = y;
+    b = z;
+    c = w;
+    gl_Position = m * vec4(x, 1.0);
 }
