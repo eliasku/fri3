@@ -66,8 +66,8 @@ fn effect_ring(r: f32, p: Vec2, r2: f32, color: Color32) void {
 var gRnd = Rnd{ .seed = 0 };
 
 pub fn render() void {
-    gfx.setupOpaquePass();
-    gfx.setTexture(0);
+    // gfx.setupOpaquePass();
+    // gfx.setTexture(0);
     // @setFloatMode(.optimized);
     const appSize = app.size();
     var scale: f32 = @min(appSize.x, appSize.y);
@@ -76,28 +76,28 @@ pub fn render() void {
     view = view.translate(appSize.scale(0.5));
     view = view.scale(Vec2.splat(scale));
     view = view.translate(Vec2.splat(-0.5 * W));
-    gfx.state.z = 100;
-    gfx.state.matrix = view;
-    gfx.state.color = 0xFFFFFFFF;
+    // gfx.state.z = 100;
+    // gfx.state.matrix = view;
+    // gfx.state.color = 0xFFFFFFFF;
     const t: f32 = @as(f32, @floatFromInt(app.tic)) * 0.08;
 
-    // render_game();
+    // // render_game();
 
-    {
-        var rnd = Rnd{ .seed = 0 };
+    // {
+    //     var rnd = Rnd{ .seed = 0 };
 
-        for (0..20) |i| {
-            const p = (Vec2{
-                .x = 0.1 + 0.8 * rnd.float(),
-                .y = 0.1 + 0.8 * rnd.float(),
-            }).scale(W);
-            const c = 0.2 * rnd.float();
-            const color = Color32.fromFloats(c, c, c, 1);
-            const fi: f32 = @floatFromInt(i);
+    //     for (0..20) |i| {
+    //         const p = (Vec2{
+    //             .x = 0.1 + 0.8 * rnd.float(),
+    //             .y = 0.1 + 0.8 * rnd.float(),
+    //         }).scale(W);
+    //         const c = 0.2 * rnd.float();
+    //         const color = Color32.fromFloats(c, c, c, 1);
+    //         const fi: f32 = @floatFromInt(i);
 
-            effect_ring(fract(t * 1.5 + fi * 0.05), p, 10 + 40 * rnd.float(), color);
-        }
-    }
+    //         effect_ring(fract(t * 1.5 + fi * 0.05), p, 10 + 40 * rnd.float(), color);
+    //     }
+    // }
 
     gfx.state.matrix = view;
     // gfx.state.z = 5;
@@ -105,7 +105,7 @@ pub fn render() void {
     var rnd0 = Rnd{ .seed = 0 };
     const angle = 0.1 * t;
 
-    gfx.state.z = 7;
+    gfx.state.z = 50;
     gfx.setupBlendPass();
     gfx.setTexture(0);
     for (0..25) |i| {
@@ -128,7 +128,7 @@ pub fn render() void {
         gfx.quad(
             sz.scale(-0.5),
             sz,
-            Color32.fromFloats(1, 1, 0.5 + 0.5 * rnd0.float(), 0.5 + 0.5 * gain.math.sintau(t)).argb(),
+            Color32.fromFloats(1, 1, 0.5 + 0.5 * rnd0.float(), if ((app.tic >> 6) & 1 == 0) 0.0 else 1.0).argb(),
         );
     }
 }

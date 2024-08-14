@@ -56,6 +56,21 @@ const js13kConfig = js13kViteConfig({
     removeOptionalTags: true,
     sortAttributes: true,
   }),
+  {
+    name: "final-transformations",
+    enforce: "post",
+    renderChunk: async (code: string) => {
+      return {
+        code: code.replaceAll("const ", "let "),
+        map: null,
+      };
+    },
+    transformIndexHtml(html: string) {
+      const regex = /<script crossorigin (.*?)/gi;
+      const replacement = '<script $1';
+      return html.replace(regex, replacement);
+    },
+  }
 );
 
 export default defineConfig(js13kConfig);

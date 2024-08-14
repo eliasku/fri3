@@ -13,8 +13,8 @@ pub fn update() void {
 }
 
 pub fn render() void {
-    fun1.render();
     colorsense.render();
+    fun1.render();
 }
 
 comptime {
