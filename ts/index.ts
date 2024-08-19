@@ -1,5 +1,3 @@
-console.log("hello");
-
 import wasm from "../zig-out/bin/main.wasm?url";
 import { importMap, run } from "./lib";
 

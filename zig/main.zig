@@ -7,14 +7,18 @@ pub const panic = gain.panic;
 const colorsense = @import("./colorsense/main.zig");
 const fun1 = @import("fun1.zig");
 
+const game = @import("game/main.zig");
+
 pub fn update() void {
-    colorsense.update();
-    fun1.update();
+    //colorsense.update();
+    //fun1.update();
+    game.update();
 }
 
 pub fn render() void {
-    colorsense.render();
-    fun1.render();
+    //colorsense.render();
+    //fun1.render();
+    game.render();
 }
 
 comptime {
