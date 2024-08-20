@@ -77,15 +77,10 @@ export const setupInput = (pointerCallback: PointerCallback, keyboardCallback: K
         //}
     }, { passive: false });
 
-    oncontextmenu = e => e.preventDefault();
+    //oncontextmenu = e => e.preventDefault();
 
-    const keyCodes = {
-        "Escape": 1,
-        "Space": 2,
-        "Enter": 3,
-    };
     /*document.*/
-    onkeydown = (e: KeyboardEvent, _code = keyCodes[e.code]) => {
+    onkeydown = (e: KeyboardEvent, _code = e.keyCode) => {
         unlockAudio();
         // if (isModalPopupActive) {
         //     return handleModalKeyEvent(e);
@@ -101,7 +96,7 @@ export const setupInput = (pointerCallback: PointerCallback, keyboardCallback: K
         // }
     };
     /*document.*/
-    onkeyup = (e: KeyboardEvent, _code = keyCodes[e.code]) => {
+    onkeyup = (e: KeyboardEvent, _code = e.keyCode) => {
         e.preventDefault();
         if (_code) {
             keyboardCallback(KeyboardEventType.UP, _code);

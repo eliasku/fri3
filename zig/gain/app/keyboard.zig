@@ -1,49 +1,39 @@
 const std = @import("std");
 
-const Code = enum(u32) {
-    dead = 0,
-    escape = 1,
-    space = 2,
-    enter = 3,
+// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode
+pub const Code = .{
+    .dead = 0,
+    .escape = 0x1B,
+    .space = 0x20,
+    .enter = 0x0D,
+    .w = 0x57,
+    .a = 0x41,
+    .s = 0x53,
+    .d = 0x44,
 };
-
-const KeyState = struct {
-    code: Code,
-    pressed: u32 = 0,
-    released: u32 = 0,
-    is_down: bool = false,
-};
-
-const Map = std.EnumMap(Code, KeyState);
-
-pub var map: Map = Map{};
+pub var down: [0x100]u1 = undefined;
+pub var pressed: [0x100]u1 = undefined;
+pub var released: [0x100]u1 = undefined;
 
 pub fn reset() void {
-    var it = map.iterator();
-    while (it.next()) |*state| {
-        state.value.pressed = 0;
-        state.value.released = 0;
-    }
+    @memset(pressed, 0);
+    @memset(released, 0);
 }
 
 pub fn onEvent(event: u32, code_val: u32) void {
-    const code: Code = @enumFromInt(code_val);
-    if (!map.contains(code)) {
-        map.put(code, .{ .code = code });
-    }
-    var state: *KeyState = map.getPtr(code).?;
-    // DOWN
-    if (event == 0) {
-        if (!state.is_down) {
-            state.pressed += 1;
-            state.is_down = true;
-        }
-    }
-    // UP
-    else if (event == 1) {
-        if (state.is_down) {
-            state.released += 1;
-            state.is_down = false;
-        }
+    // keep range ( mask for 8bit );
+    const key: u8 = @truncate(code_val);
+    switch (event) {
+        // DOWN
+        0 => if (down[key] == 0) {
+            pressed[key] = 1;
+            down[key] = 1;
+        },
+        // UP
+        1 => if (down[key] == 1) {
+            released[key] = 1;
+            down[key] = 0;
+        },
+        else => unreachable,
     }
 }
