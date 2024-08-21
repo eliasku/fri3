@@ -7,10 +7,11 @@ const Color32 = gain.math.Color32;
 const Mat2d = gain.math.Mat2d;
 const AABB = @import("aabbi.zig");
 
+const Cell = u8;
 const map_size_bits = 8;
 const map_size = 1 << map_size_bits;
 const map_size_mask = map_size - 1;
-var map: [1 << (map_size_bits << 1)]u8 = undefined;
+var map: [1 << (map_size_bits << 1)]Cell = undefined;
 var level: u32 = 0;
 var level_started = false;
 
@@ -46,18 +47,18 @@ fn mapPtr(x: anytype, y: anytype) usize {
     return (_y << map_size_bits) + _x;
 }
 
-fn getMap(x: anytype, y: anytype) u8 {
+fn getMap(x: anytype, y: anytype) Cell {
     return map[mapPtr(x, y)];
 }
 
-fn setMap(x: anytype, y: anytype, v: u8) void {
+fn setMap(x: anytype, y: anytype, v: Cell) void {
     map[mapPtr(x, y)] = v;
 }
 
-fn placeItem(x: u32, y: u32, kind: u8) void {
+fn placeItem(x: i32, y: i32, kind: u8) void {
     items[items_num] = .{
-        .x = @intCast(cell_size_half + (x << (cell_size_shift))),
-        .y = @intCast(cell_size_half + (y << (cell_size_shift))),
+        .x = cell_size_half + (x << cell_size_shift),
+        .y = cell_size_half + (y << cell_size_shift),
         .kind = kind,
     };
     items_num += 1;
@@ -67,14 +68,17 @@ fn initLevel() void {
     var rnd = gain.math.Rnd{ .seed = 10 + (level << 5) };
 
     items_num = 0;
-    var x: u32 = map_size >> 1;
-    var y: u32 = map_size >> 1;
+    var x: i32 = map_size >> 1;
+    var y: i32 = map_size >> 1;
     var act: u32 = 0;
     var act_timer: u32 = 4;
-    hero = Hero{ .x = @intCast(x << (cell_size_shift)), .y = @intCast(y << (cell_size_shift)) };
+    hero = Hero{
+        .x = x << cell_size_shift,
+        .y = y << cell_size_shift,
+    };
 
     //map = std.mem.zeroes(@TypeOf(map));
-    const iters = 1000;
+    const iters = 100;
     for (0..iters) |_| {
         switch (act) {
             0 => if (x + 2 < map_size) {
@@ -118,8 +122,8 @@ fn initLevel() void {
     }
 
     {
-        const ex: i32 = @intCast((cell_size_half + (x << (cell_size_shift))) - 10);
-        const ey: i32 = @intCast((cell_size_half + (y << (cell_size_shift))) - 10);
+        const ex: i32 = (cell_size_half + (x << (cell_size_shift))) - 10;
+        const ey: i32 = (cell_size_half + (y << (cell_size_shift))) - 10;
         exit = AABB.init(ex, ey, 20, 20);
     }
 }
@@ -213,6 +217,12 @@ pub fn update() void {
         }
     }
 }
+fn invDist(x: i32, y: i32, x1: i32, y1: i32) i32 {
+    const dx: f32 = @floatFromInt(x - x1);
+    const dy: f32 = @floatFromInt(y - y1);
+    const d = @max(256 - @sqrt(dx * dx + dy * dy), 0) / 256;
+    return @intFromFloat(@sqrt(@sqrt(d)) * cell_size_half);
+}
 
 fn drawHero() void {
     const x = hero.x;
@@ -261,37 +271,69 @@ pub fn render() void {
     gfx.setTexture(0);
     gfx.state.z = 4;
 
+    const SCREEN_SIZE = 512;
     {
         const cx = hero.x;
         const cy = hero.y;
         const short_side = @min(app.w, app.h);
-        const scale = @as(f32, @floatFromInt(short_side)) / (512 * camera_zoom);
+        const scale = @as(f32, @floatFromInt(short_side)) / (SCREEN_SIZE * camera_zoom);
         gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(app.w, app.h).scale(0.5));
         gfx.state.matrix = gfx.state.matrix.scale(Vec2.splat(scale));
         gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(cx + hero_w / 2, cy + hero_h / 2).neg());
     }
+
+    const HALF_SCREEN_SIZE = SCREEN_SIZE >> 1;
+    const camera_aabb = AABB.init(
+        hero.x - HALF_SCREEN_SIZE,
+        hero.y - HALF_SCREEN_SIZE,
+        SCREEN_SIZE,
+        SCREEN_SIZE,
+    );
 
     drawHero();
 
     drawExit();
 
     for (0..items_num) |i| {
-        drawItem(i);
-    }
-
-    gfx.state.z = 2;
-    for (0..map_size) |cy| {
-        for (0..map_size) |cx| {
-            const cell = map[cy * map_size + cx];
-            if (cell == 1) {
-                const x = cx << cell_size_shift;
-                const y = cy << cell_size_shift;
-                const cell_size = Vec2.fromIntegers(1 << cell_size_shift, 1 << cell_size_shift);
-                gfx.quad(Vec2.fromIntegers(x, y), cell_size, 0xFF338866);
-            }
+        const item = items[i];
+        if (item.kind != 0 and
+            AABB.init(item.x - 4, item.y - 4, 8, 8).check(camera_aabb))
+        {
+            drawItem(i);
         }
     }
 
+    gfx.state.z = 2;
+
+    {
+        const cx0 = camera_aabb.minx >> cell_size_shift;
+        const cy0 = camera_aabb.miny >> cell_size_shift;
+        const cx1 = (camera_aabb.maxx >> cell_size_shift) + 2;
+        const cy1 = (camera_aabb.maxy >> cell_size_shift) + 2;
+        const ccx0: usize = @intCast(@max(0, cx0));
+        const ccx1: usize = @intCast(@max(0, cx1));
+        const ccy0: usize = @intCast(@max(0, cy0));
+        const ccy1: usize = @intCast(@max(0, cy1));
+
+        const matrix = gfx.state.matrix;
+        for (ccy0..ccy1) |cy| {
+            for (ccx0..ccx1) |cx| {
+                const cell = map[cy * map_size + cx];
+                if (cell == 1) {
+                    const x: i32 = @intCast((cx << cell_size_shift) + cell_size_half);
+                    const y: i32 = @intCast((cy << cell_size_shift) + cell_size_half);
+                    var sz: i32 = @min(invDist(hero.x, hero.y, x, y), 1 << cell_size_shift);
+                    sz += (@as(i32, @intCast((app.tic >> 3) + (cx *% cy))) & 7) >> 2;
+                    const cell_size = Vec2.fromIntegers(sz << 1, sz << 1);
+                    gfx.state.matrix = matrix
+                        .translate(Vec2.fromIntegers(x, y))
+                        .rotate(std.math.pi * (1 - @as(f32, @floatFromInt(sz)) / (cell_size_half)));
+                    gfx.quad(Vec2.fromIntegers(-sz, -sz), cell_size, 0xFF338866);
+                }
+            }
+        }
+        gfx.state.matrix = matrix;
+    }
     gfx.state.z = 1;
     gfx.quad(Vec2.init(0, 0), Vec2.fromIntegers(map_size << cell_size_shift, map_size << cell_size_shift), 0xFF222222);
     gfx.state.z = 0;
