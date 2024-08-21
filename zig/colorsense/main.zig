@@ -5,7 +5,7 @@ const pointers = gain.pointers;
 const Color32 = @import("../gain/main.zig").math.Color32;
 const Vec2 = @import("../gain/main.zig").math.Vec2;
 const Mat2d = @import("../gain/main.zig").math.Mat2d;
-const AABB = @import("aabbi.zig");
+const AABB = @import("../game/aabbi.zig");
 const bg = @import("background.zig");
 
 // Base Resolution : 360 x 480
