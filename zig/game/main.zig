@@ -291,10 +291,8 @@ fn drawItem(i: usize) void {
     const item = items[i];
     const x = item.x;
     const y = item.y;
-    if (item.kind != 0) {
-        drawQuad(x - (4 << percision_bits), y - (4 << percision_bits), 8 << percision_bits, 8 << percision_bits, 0xFF00FF00);
-        drawQuad(x - (6 << percision_bits), y - (6 << percision_bits), 12 << percision_bits, 12 << percision_bits, 0xFF444444);
-    }
+    drawQuad(x - (4 << percision_bits), y - (4 << percision_bits), 8 << percision_bits, 8 << percision_bits, 0xFF00FF00);
+    drawQuad(x - (6 << percision_bits), y - (6 << percision_bits), 12 << percision_bits, 12 << percision_bits, 0xFF444444);
 }
 
 pub fn render() void {
@@ -308,9 +306,9 @@ pub fn render() void {
         const cy = hero.y;
         const short_side = @min(app.w, app.h);
         const scale = @as(f32, @floatFromInt(short_side)) / (screen_size * camera_zoom);
-        gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(app.w, app.h).scale(0.5));
+        gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(app.w >> 1, app.h >> 1));
         gfx.state.matrix = gfx.state.matrix.scale(Vec2.splat(scale));
-        gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(cx + hero_w / 2, cy + hero_h / 2).neg());
+        gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(-(cx + (hero_w >> 1)), -(cy + (hero_h >> 1))));
     }
 
     const camera_aabb = AABB.init(
