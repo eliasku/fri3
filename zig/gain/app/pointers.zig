@@ -23,6 +23,7 @@ const Pointer = struct {
     start: Rect,
     down: bool,
     up: bool,
+    is_down: bool,
     active: bool,
     buttons: u32,
     is_primary: bool,
@@ -70,12 +71,19 @@ pub fn onEvent(id: u32, is_primary: u32, buttons: u32, event: EventType, device:
     switch (event) {
         .down => {
             p.active = true;
+            p.is_down = true;
             p.start = rc;
             p.down = true;
         },
         .move => p.active = true,
-        .up => p.up = p.active,
+        .up => {
+            p.up = p.active;
+            p.is_down = false;
+        },
         .enter => p.active = true,
-        .leave => p.active = false,
+        .leave => {
+            p.active = false;
+            p.is_down = false;
+        },
     }
 }

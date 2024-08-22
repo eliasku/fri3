@@ -131,6 +131,15 @@ fn initLevel() void {
     }
 }
 
+fn playZzfx(comptime params: anytype) void {
+    var audio_buffer: [8 * 4096]f32 = undefined;
+    // Blip 71
+    const len = gain.zzfx.buildSamples(gain.zzfx.ZzfxParameters.fromSlice(params), &audio_buffer);
+    if (gain.js.enabled) {
+        gain.js.playUserAudioBuffer(&audio_buffer, len);
+    }
+}
+
 pub fn update() void {
     if (!level_started) {
         initLevel();
@@ -141,21 +150,36 @@ pub fn update() void {
     const keys = gain.keyboard;
 
     // 5190
-    var vx: i32 = 0;
+    var move_dir = Vec2.init(0, 0);
     if ((keys.down[keys.Code.a] | keys.down[keys.Code.arrow_left]) != 0) {
-        vx -= 1;
+        move_dir.x -= 1;
     }
     if ((keys.down[keys.Code.d] | keys.down[keys.Code.arrow_right]) != 0) {
-        vx += 1;
+        move_dir.x += 1;
     }
-    var vy: i32 = 0;
     if ((keys.down[keys.Code.w] | keys.down[keys.Code.arrow_up]) != 0) {
-        vy -= 1;
+        move_dir.y -= 1;
     }
     if ((keys.down[keys.Code.s] | keys.down[keys.Code.arrow_down]) != 0) {
-        vy += 1;
+        move_dir.y += 1;
     }
 
+    if (gain.pointers.primary()) |p| {
+        if (p.is_down) {
+            const d = p.rc.center().sub(p.start.center());
+            const dist = getScreenScale() * (32 << percision_bits);
+            if (d.length() >= dist) {
+                move_dir = d;
+            }
+        }
+    }
+
+    if (move_dir.lengthSq() > 0) {
+        const speed: f32 = if (hero_move_timer > 16) 2 else 1;
+        move_dir = move_dir.normalize().scale(speed * (1 << percision_bits));
+    }
+    const dx: i32 = @intFromFloat(move_dir.x);
+    const dy: i32 = @intFromFloat(move_dir.y);
     // 5208
     // var vx: i32 = 0;
     // var vy: i32 = 0;
@@ -168,23 +192,27 @@ pub fn update() void {
     // const vx: i32 = @as(i32, (keys.down[keys.Code.d] | keys.down[keys.Code.arrow_right])) - @as(i32, (keys.down[keys.Code.a] | keys.down[keys.Code.arrow_left]));
     // const vy: i32 = @as(i32, (keys.down[keys.Code.s] | keys.down[keys.Code.arrow_down])) - @as(i32, (keys.down[keys.Code.w] | keys.down[keys.Code.arrow_up]));
 
-    if (vx != 0 or vy != 0) {
+    if (dx != 0 or dy != 0) {
         hero_move_timer +%= 1;
-        hero_look_x = vx << percision_bits;
-        hero_look_y = vy << percision_bits;
+        hero_look_x = dx;
+        hero_look_y = dy;
+
+        if ((hero_move_timer & 0x1F) == 0) {
+            playZzfx(.{ 1, 0.1, 553, 0.02, 0.01, 0, 0, 1.17, -85, 92, 0, 0, 0, 0, 0, 0, 0, 0, 0.01, 0 });
+        }
     } else {
         hero_move_timer = 0;
     }
 
-    var speed: i32 = 1 << percision_bits;
-    if (vx != 0 and vy != 0) {
-        speed = 0xB4;
-    }
+    // var speed: i32 = 1 << percision_bits;
+    // if (vx != 0 and vy != 0) {
+    //     speed = 0xB4;
+    // }
     //if (hero_move_timer > 16) speed <<= 1;
 
     const sh = cell_size_bits;
-    var new_x = @max(hero.x + vx * speed, 0);
-    var new_y = @max(hero.y + vy * speed, 0);
+    var new_x = @max(hero.x + dx, 0);
+    var new_y = @max(hero.y + dy, 0);
     if (new_x < hero.x) {
         const cx = new_x >> sh;
         const cy = (hero.y + hero_h) >> sh;
@@ -224,6 +252,7 @@ pub fn update() void {
                 const v = AABB.init(item.x - 8, item.y - 8, 16, 16);
                 if (hero_aabb.check(v)) {
                     items[i].kind = 0;
+                    playZzfx(.{ 1, 0.05, 1578, 0, 0.03, 0.15, 1, 0.87, 0, 0, 141, 0.01, 0, 0.1, 0, 0, 0, 0.52, 0.01, 0.04 });
                 }
             }
         }
@@ -231,6 +260,7 @@ pub fn update() void {
         if (exit.check(hero_aabb)) {
             level += 1;
             level_started = false;
+            playZzfx(.{ 1, 0.05, 177, 0, 0.09, 0.07, 2, 1.4, 0, 0, 0, 0, 0.09, 0, 38, 50, 0.28, 0.58, 0.1, 0 });
         }
     }
 }
@@ -240,7 +270,8 @@ fn invDist(x: i32, y: i32, x1: i32, y1: i32) i32 {
     const dx: f32 = @floatFromInt(x - x1);
     const dy: f32 = @floatFromInt(y - y1);
     const d = @max(distance - @sqrt(dx * dx + dy * dy), 0) / distance;
-    return @intFromFloat(@sqrt(@sqrt(d)) * cell_size_half);
+    //return @intFromFloat(@sqrt(@sqrt(d)) * (16 << percision_bits)); //(cell_size));
+    return @intFromFloat(@sqrt(@sqrt(d)) * (cell_size_half));
 }
 
 fn drawQuad(x: i32, y: i32, w: i32, h: i32, color: u32) void {
@@ -295,17 +326,32 @@ fn drawItem(i: usize) void {
     drawQuad(x - (6 << percision_bits), y - (6 << percision_bits), 12 << percision_bits, 12 << percision_bits, 0xFF444444);
 }
 
+fn getScreenScale() f32 {
+    const short_side = @min(app.w, app.h);
+    return @as(f32, @floatFromInt(short_side)) / (screen_size * camera_zoom);
+}
+
 pub fn render() void {
     gfx.setupOpaquePass();
     gfx.state.matrix = Mat2d.identity();
     gfx.setTexture(0);
+
+    const scale = getScreenScale();
+
+    if (gain.pointers.primary()) |p| {
+        if (p.is_down) {
+            gfx.state.z = 10;
+            gfx.fillCircle(p.rc.center(), Vec2.splat(scale * (24 << percision_bits)), 64, 0xFF999999);
+            gfx.fillCircle(p.start.center(), Vec2.splat(scale * (60 << percision_bits)), 64, 0xFF444444);
+            gfx.fillCircle(p.start.center(), Vec2.splat(scale * (64 << percision_bits)), 64, 0xFF111111);
+        }
+    }
+
     gfx.state.z = 4;
 
     {
         const cx = hero.x;
         const cy = hero.y;
-        const short_side = @min(app.w, app.h);
-        const scale = @as(f32, @floatFromInt(short_side)) / (screen_size * camera_zoom);
         gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(app.w >> 1, app.h >> 1));
         gfx.state.matrix = gfx.state.matrix.scale(Vec2.splat(scale));
         gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(-(cx + (hero_w >> 1)), -(cy + (hero_h >> 1))));
@@ -350,12 +396,12 @@ pub fn render() void {
                 if (cell == 1) {
                     const x: i32 = @intCast((cx << cell_size_bits) + cell_size_half);
                     const y: i32 = @intCast((cy << cell_size_bits) + cell_size_half);
-                    var sz: i32 = @min(invDist(hero.x, hero.y, x, y), 1 << cell_size_bits);
-                    sz += (@as(i32, @intCast((app.tic >> 3) + (cx *% cy))) & 7) >> 2;
+                    const sz0: i32 = invDist(hero.x, hero.y, x, y);
+                    const sz = sz0 + ((@as(i32, @intCast((app.tic >> 3) + (cx *% cy))) & 7) << (percision_bits - 4));
                     const cell_size_v = Vec2.fromIntegers(sz << 1, sz << 1);
                     gfx.state.matrix = matrix
                         .translate(Vec2.fromIntegers(x, y))
-                        .rotate(std.math.pi * (1 - @as(f32, @floatFromInt(sz)) / (cell_size_half)));
+                        .rotate(std.math.pi * (1 - @as(f32, @floatFromInt(sz0)) / (cell_size_half)));
                     gfx.quad(Vec2.fromIntegers(-sz, -sz), cell_size_v, 0xFF338866);
                 }
             }
