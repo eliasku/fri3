@@ -10,6 +10,10 @@ pub const Code = .{
     .a = 0x41,
     .s = 0x53,
     .d = 0x44,
+    .arrow_left = 0x25,
+    .arrow_up = 0x26,
+    .arrow_right = 0x27,
+    .arrow_down = 0x28,
 };
 pub var down: [0x100]u1 = undefined;
 pub var pressed: [0x100]u1 = undefined;

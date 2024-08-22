@@ -7,12 +7,12 @@ miny: i32,
 maxx: i32,
 maxy: i32,
 
-pub fn init(x: i32, y: i32, w: i32, h: i32) Self {
+pub fn init(x: i32, y: i32, width: i32, height: i32) Self {
     return .{
         .minx = x,
         .miny = y,
-        .maxx = x + w,
-        .maxy = y + h,
+        .maxx = x + width,
+        .maxy = y + height,
     };
 }
 
@@ -52,4 +52,12 @@ pub fn sizef(self: Self) Vec2 {
         .x = self.widthf(),
         .y = self.heightf(),
     };
+}
+
+pub fn w(self: Self) i32 {
+    return self.maxx - self.minx;
+}
+
+pub fn h(self: Self) i32 {
+    return self.maxy - self.miny;
 }
