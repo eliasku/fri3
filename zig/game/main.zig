@@ -5,7 +5,7 @@ const Vec2 = gain.math.Vec2;
 const app = gain.app;
 const Color32 = gain.math.Color32;
 const Mat2d = gain.math.Mat2d;
-const AABB = @import("aabbi.zig");
+const FPRect = @import("FPRect.zig");
 const fp32 = @import("fp32.zig");
 
 const Hero = struct {
@@ -42,10 +42,10 @@ var hero_move_timer: u32 = undefined;
 var hero_look_x: i32 = undefined;
 var hero_look_y: i32 = undefined;
 var hero: Hero = undefined;
-var hero_aabb_local: AABB = AABB.init(-(hero_w >> 1), -hero_h, hero_w, hero_h);
-var hero_ground_aabb_local: AABB = AABB.init(-(hero_place_w >> 1), -(hero_place_h >> 1), hero_place_w, hero_place_h);
+var hero_aabb_local = FPRect.init(-(hero_w >> 1), -hero_h, hero_w, hero_h);
+var hero_ground_aabb_local = FPRect.init(-(hero_place_w >> 1), -(hero_place_h >> 1), hero_place_w, hero_place_h);
 
-var exit: AABB = undefined;
+var exit: FPRect = undefined;
 
 const Mob = struct {
     x: i32,
@@ -55,25 +55,25 @@ const Mob = struct {
 
 var mobs: [128]Mob = undefined;
 var mobs_num: u32 = undefined;
-const mob_hitbox_local = AABB.init(
-    -10 << fbits,
-    -4 << fbits,
-    20 << fbits,
-    4 << fbits,
+const mob_hitbox_local = FPRect.fromInt(
+    -10,
+    -4,
+    20,
+    4,
 );
 
-const mob_quad_local = AABB.init(
-    -10 << fbits,
-    -30 << fbits,
-    20 << fbits,
-    30 << fbits,
+const mob_quad_local = FPRect.fromInt(
+    -10,
+    -30,
+    20,
+    30,
 );
 
-const item_aabb = AABB.init(
-    -10 << fbits,
-    -10 << fbits,
-    20 << fbits,
-    20 << fbits,
+const item_aabb = FPRect.fromInt(
+    -10,
+    -10,
+    20,
+    20,
 );
 
 var items: [128]Item = undefined;
@@ -175,16 +175,23 @@ fn initLevel() void {
     {
         const ex: i32 = (cell_size_half + (x << (cell_size_bits))) - (10 << fbits);
         const ey: i32 = (cell_size_half + (y << (cell_size_bits))) - (10 << fbits);
-        exit = AABB.init(ex, ey, 20 << fbits, 20 << fbits);
+        exit = FPRect.init(ex, ey, 20 << fbits, 20 << fbits);
     }
 }
 
 fn playZzfx(comptime params: anytype) void {
     var audio_buffer: [8 * 4096]f32 = undefined;
-    // Blip 71
     const len = gain.zzfx.buildSamples(gain.zzfx.ZzfxParameters.fromSlice(params), &audio_buffer);
     if (gain.js.enabled) {
-        gain.js.playUserAudioBuffer(&audio_buffer, len);
+        gain.js.playUserAudioBuffer(&audio_buffer, len, 1, 0, 0, 0);
+    }
+}
+
+fn playZzfxEx(comptime params: anytype, vol: f32, pan: f32, detune: f32, when: f32) void {
+    var audio_buffer: [8 * 4096]f32 = undefined;
+    const len = gain.zzfx.buildSamples(gain.zzfx.ZzfxParameters.fromSlice(params), &audio_buffer);
+    if (gain.js.enabled) {
+        gain.js.playUserAudioBuffer(&audio_buffer, len, vol, pan, detune, when);
     }
 }
 
@@ -194,11 +201,11 @@ fn testMapPoint(x: i32, y: i32) bool {
     return getMap(cx, cy) == 0;
 }
 
-fn testMapRect(aabb: AABB) bool {
-    return testMapPoint(aabb.minx, aabb.miny) or
-        testMapPoint(aabb.minx, aabb.maxy) or
-        testMapPoint(aabb.maxx, aabb.miny) or
-        testMapPoint(aabb.maxx, aabb.maxy);
+fn testMapRect(rc: FPRect) bool {
+    return testMapPoint(rc.x, rc.y) or
+        testMapPoint(rc.x, rc.b()) or
+        testMapPoint(rc.r(), rc.y) or
+        testMapPoint(rc.r(), rc.b());
 }
 
 var g_rnd: gain.math.Rnd = .{ .seed = 0 };
@@ -305,19 +312,21 @@ pub fn update() void {
     const aabb = hero_ground_aabb_local.translate(hero.x, hero.y);
     for (0..items_num) |i| {
         const item = items[i];
-        if (item.kind != 0 and item_aabb.translate(item.x, item.y).check(aabb)) {
+        if (item.kind != 0 and item_aabb.translate(item.x, item.y).overlaps(aabb)) {
             items[i].kind = 0;
             playZzfx(.{ 1, 0.05, 1578, 0, 0.03, 0.15, 1, 0.87, 0, 0, 141, 0.01, 0, 0.1, 0, 0, 0, 0.52, 0.01, 0.04 });
         }
     }
 
-    if (exit.check(aabb)) {
+    if (exit.overlaps(aabb)) {
         level += 1;
         level_started = false;
         playZzfx(.{ 1, 0.05, 177, 0, 0.09, 0.07, 2, 1.4, 0, 0, 0, 0, 0.09, 0, 38, 50, 0.28, 0.58, 0.1, 0 });
     }
 
     updateMobs();
+
+    updateMusic();
 }
 
 fn invDist(x: i32, y: i32, x1: i32, y1: i32) i32 {
@@ -333,6 +342,10 @@ fn drawQuad(x: i32, y: i32, w: i32, h: i32, color: u32) void {
     gfx.quad(Vec2.fromIntegers(x, y), Vec2.fromIntegers(w, h), color);
 }
 
+fn drawRect(rc: FPRect, color: u32) void {
+    drawQuad(rc.x, rc.y, rc.w, rc.h, color);
+}
+
 fn getHeroOffY() i32 {
     return @intCast((((hero_move_timer & 31) + 7) >> 4) << fbits);
 }
@@ -343,8 +356,8 @@ fn setDepth(x: i32, y: i32) void {
 }
 
 fn drawHero() void {
-    const x = hero.x + hero_aabb_local.minx;
-    const y = hero.y + hero_aabb_local.miny;
+    const x = hero.x + hero_aabb_local.x;
+    const y = hero.y + hero_aabb_local.y;
     const hero_y_off = getHeroOffY();
 
     setDepth(hero.x, hero.y);
@@ -365,19 +378,17 @@ fn drawHero() void {
 }
 
 fn drawHeroShadow() void {
-    const x = hero.x + hero_ground_aabb_local.minx;
-    const y = hero.y + hero_ground_aabb_local.miny;
     const hero_y_off = getHeroOffY() >> fbits;
-    drawQuad(x, y, hero_ground_aabb_local.w(), hero_ground_aabb_local.h(), @as(u32, @intCast(0x44 - 0x20 * hero_y_off)) << 24);
+    drawRect(hero_ground_aabb_local.translate(hero.x, hero.y), @as(u32, @intCast(0x44 - 0x20 * hero_y_off)) << 24);
 }
 
 fn drawExit() void {
-    const x = exit.minx;
-    const y = exit.miny;
-    const w = exit.w();
-    const h = exit.h();
+    const x = exit.x;
+    const y = exit.y;
+    const w = exit.w;
+    const h = exit.h;
     setDepth(x, y);
-    drawQuad(x, y, w, h, 0xFFFFFFFF);
+    drawRect(exit, 0xFFFFFFFF);
     drawQuad(x - (2 << fbits), y - (2 << fbits), w + (4 << fbits), h + (4 << fbits), 0xFFFFBB66);
 }
 
@@ -394,9 +405,9 @@ fn drawMob(i: usize) void {
     const mob = mobs[i];
     const x = mob.x;
     const y = mob.y;
-    const aabb = mob_quad_local.translate(x, y);
+    const rc = mob_quad_local.translate(x, y);
     setDepth(x, y);
-    drawQuad(aabb.minx, aabb.miny, aabb.w(), aabb.h(), 0xFF000000);
+    drawRect(rc, 0xFF000000);
 }
 
 fn getScreenScale() f32 {
@@ -427,15 +438,19 @@ pub fn render() void {
         const cy = hero.y;
         gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(app.w >> 1, app.h >> 1));
         gfx.state.matrix = gfx.state.matrix.scale(Vec2.splat(scale));
-        gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(-(cx + (hero_w >> 1)), -(cy + (hero_h >> 1))));
+        gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(-cx, -cy));
     }
 
-    const camera_aabb = AABB.init(
-        hero.x - screen_size_half,
-        hero.y - screen_size_half,
-        screen_size,
-        screen_size,
-    );
+    // const occ_scale = 1 / scale;
+    const occ_scale = 1 / scale;
+    const sc_w = fp32.scale(@intCast(app.w), occ_scale);
+    const sc_h = fp32.scale(@intCast(app.h), occ_scale);
+    const camera_aabb = FPRect.init(
+        hero.x - (sc_w >> 1),
+        hero.y - (sc_h >> 1),
+        sc_w,
+        sc_h,
+    ).expandInt(-32);
 
     drawHero();
 
@@ -443,14 +458,14 @@ pub fn render() void {
 
     for (0..items_num) |i| {
         const item = items[i];
-        if (item.kind != 0 and item_aabb.translate(item.x, item.y).check(camera_aabb)) {
+        if (item.kind != 0 and item_aabb.translate(item.x, item.y).overlaps(camera_aabb)) {
             drawItem(i);
         }
     }
 
     for (0..mobs_num) |i| {
         const mob = mobs[i];
-        if (mob.kind != 0 and mob_quad_local.translate(mob.x, mob.y).check(camera_aabb)) {
+        if (mob.kind != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera_aabb)) {
             drawMob(i);
         }
     }
@@ -458,14 +473,14 @@ pub fn render() void {
     gfx.state.z = 2;
 
     {
-        const cx0 = camera_aabb.minx >> cell_size_bits;
-        const cy0 = camera_aabb.miny >> cell_size_bits;
-        const cx1 = (camera_aabb.maxx >> cell_size_bits) + 2;
-        const cy1 = (camera_aabb.maxy >> cell_size_bits) + 2;
-        const ccx0: usize = @intCast(@max(0, cx0));
-        const ccx1: usize = @intCast(@max(0, cx1));
-        const ccy0: usize = @intCast(@max(0, cy0));
-        const ccy1: usize = @intCast(@max(0, cy1));
+        const _cx = camera_aabb.x >> cell_size_bits;
+        const _cy = camera_aabb.y >> cell_size_bits;
+        const _cw = camera_aabb.w >> cell_size_bits;
+        const _ch = camera_aabb.h >> cell_size_bits;
+        const ccx0: usize = @intCast(@max(0, _cx));
+        const ccx1: usize = @intCast(@max(0, _cx + _cw + 2));
+        const ccy0: usize = @intCast(@max(0, _cy));
+        const ccy1: usize = @intCast(@max(0, _cy + _ch + 2));
 
         const matrix = gfx.state.matrix;
         for (ccy0..ccy1) |cy| {
@@ -487,11 +502,37 @@ pub fn render() void {
         gfx.state.matrix = matrix;
     }
     gfx.state.z = 1;
-    drawQuad(0, 0, map_size << cell_size_bits, map_size << cell_size_bits, 0xFF222222);
+    drawRect(camera_aabb, 0xFF222222);
     gfx.state.z = 0;
-    drawQuad(-1024, -1024, 2048 + (map_size << cell_size_bits), 2048 + (map_size << cell_size_bits), 0xFF000000);
+    drawRect(camera_aabb.expandInt(128 << fbits), 0xFF000000);
 
     gfx.setupBlendPass();
     gfx.state.z = 3;
     drawHeroShadow();
+}
+
+var music_end_time: f32 = 0;
+var music_bar: u32 = 0;
+
+fn updateMusic() void {
+    var time: f32 = @floatFromInt(app.tic << 4);
+    time = time / 1000;
+    const k: f32 = (60.0 / 120.0) / 4.0;
+    if (time >= music_end_time - k) {
+        generateNextMusicBar(music_end_time, k);
+        music_end_time += 16 * k;
+        music_bar += 1;
+    }
+}
+
+fn generateNextMusicBar(time: f32, k: f32) void {
+    var t = time;
+    for (0..16) |j| {
+        if (j & 3 == 0) {
+            playZzfxEx(.{ 1, 0.1, 553, 0.02, 0.01, 0, 0, 1.17, -85, 92, 0, 0, 0, 0, 0, 0, 0, 0, 0.01, 0 }, 1, 0, 0, t);
+        } else {
+            playZzfxEx(.{ 1, 0.1, 553, 0.02, 0.01, 0, 0, 1.17, -85, 92, 0, 0, 0, 0, 0, 0, 0, 0, 0.01, 0 }, 0.2, 0, 0, t);
+        }
+        t += k;
+    }
 }

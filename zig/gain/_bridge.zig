@@ -19,7 +19,7 @@ pub const Imports = if (enabled) struct {
 	extern "0" fn a(vb: [*]const u8, vb_size: u32, ib: [*]const u16, indices_count: u32, handle: u32) void;
 	pub const drawTriangles = a;
 
-	extern "0" fn b(samples: [*]const f32, length: u32) void;
+	extern "0" fn b(samples: [*]const f32, length: u32, vol: f32, pan: f32, note: f32, when: f32) void;
 	pub const playUserAudioBuffer = b;
 
 	extern "0" fn c(id: u32) void;

@@ -11,7 +11,7 @@ const imports: Record<string, any> = {
     sig: "(vb: [*]const u8, vb_size: u32, ib: [*]const u16, indices_count: u32, handle: u32) void",
   },
   playUserAudioBuffer: {
-    sig: "(samples: [*]const f32, length: u32) void",
+    sig: "(samples: [*]const f32, length: u32, vol: f32, pan: f32, note: f32, when: f32) void",
   },
   setTexture: {
     sig: "(id: u32) void",

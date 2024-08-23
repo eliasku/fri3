@@ -7,7 +7,16 @@ y: i32,
 w: i32,
 h: i32,
 
-pub fn fromInt(x: i32, y: i32, w: i32, h: i32) Self {
+pub fn init(x: i32, y: i32, w: i32, h: i32) Self {
+    return .{
+        .x = x,
+        .y = y,
+        .w = w,
+        .h = h,
+    };
+}
+
+pub inline fn fromInt(x: i32, y: i32, w: i32, h: i32) Self {
     return .{
         .x = x << fp32.fbits,
         .y = y << fp32.fbits,
@@ -25,6 +34,16 @@ pub fn translate(self: Self, dx: i32, dy: i32) Self {
     };
 }
 
+pub fn expandInt(self: Self, v: i32) Self {
+    const s = v << fp32.fbits;
+    return .{
+        .x = self.x - s,
+        .y = self.y - s,
+        .w = self.w + (s << 1),
+        .h = self.h + (s << 1),
+    };
+}
+
 pub fn r(self: Self) i32 {
     return self.x + self.w;
 }
@@ -34,7 +53,7 @@ pub fn b(self: Self) i32 {
 }
 
 pub fn cx(self: Self) i32 {
-    return self.x + (self.y >> 1);
+    return self.x + (self.w >> 1);
 }
 
 pub fn cy(self: Self) i32 {

@@ -46,8 +46,8 @@ export const run = (instance: WebAssembly.Instance) => {
   const onFrame = (ts: DOMHighResTimeStamp) => {
     accum += ts - prev;
     prev = ts;
-    let steps = accum >> 3;
-    accum -= steps << 3;
+    let steps = accum >> 4;
+    accum -= steps << 4;
     if (steps) {
       const w = gl.drawingBufferWidth;
       const h = gl.drawingBufferHeight;
