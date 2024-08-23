@@ -61,3 +61,12 @@ pub fn w(self: Self) i32 {
 pub fn h(self: Self) i32 {
     return self.maxy - self.miny;
 }
+
+pub fn translate(self: Self, dx: i32, dy: i32) Self {
+    return .{
+        .minx = self.minx + dx,
+        .miny = self.miny + dy,
+        .maxx = self.maxx + dx,
+        .maxy = self.maxy + dy,
+    };
+}
