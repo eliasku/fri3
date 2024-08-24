@@ -3,3 +3,4 @@ dist/
 .zig-cache/
 zig-cache/
 zig-out/
+vite.config.ts.*.mjs

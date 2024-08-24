@@ -264,8 +264,8 @@ pub fn update() void {
         }
     }
 
-    if (move_dir.lengthSq() > 0) {
-        const speed: f32 = if (hero_move_timer > 16) 1 else 0.5;
+    if (move_dir.length() > 0) {
+        const speed: f32 = if (hero_move_timer > 16) 2 else 1;
         move_dir = move_dir.normalize().scale(speed * (1 << fbits));
     }
     const dx: i32 = @intFromFloat(move_dir.x);
@@ -283,7 +283,7 @@ pub fn update() void {
     // const vy: i32 = @as(i32, (keys.down[keys.Code.s] | keys.down[keys.Code.arrow_down])) - @as(i32, (keys.down[keys.Code.w] | keys.down[keys.Code.arrow_up]));
 
     if (dx != 0 or dy != 0) {
-        hero_move_timer +%= 1;
+        hero_move_timer +%= 2;
         hero_look_x = dx;
         hero_look_y = dy;
 
@@ -511,13 +511,15 @@ pub fn render() void {
     drawHeroShadow();
 }
 
+// MUSIC
+
 var music_end_time: f32 = 0;
 var music_bar: u32 = 0;
 
 fn updateMusic() void {
     var time: f32 = @floatFromInt(app.tic << 4);
     time = time / 1000;
-    const k: f32 = (60.0 / 120.0) / 4.0;
+    const k: f32 = (60.0 / 80.0) / 4.0;
     if (time >= music_end_time - k) {
         generateNextMusicBar(music_end_time, k);
         music_end_time += 16 * k;
@@ -528,11 +530,14 @@ fn updateMusic() void {
 fn generateNextMusicBar(time: f32, k: f32) void {
     var t = time;
     for (0..16) |j| {
-        if (j & 3 == 0) {
-            playZzfxEx(.{ 1, 0.1, 553, 0.02, 0.01, 0, 0, 1.17, -85, 92, 0, 0, 0, 0, 0, 0, 0, 0, 0.01, 0 }, 1, 0, 0, t);
-        } else {
-            playZzfxEx(.{ 1, 0.1, 553, 0.02, 0.01, 0, 0, 1.17, -85, 92, 0, 0, 0, 0, 0, 0, 0, 0, 0.01, 0 }, 0.2, 0, 0, t);
+        const i = j & 0x3;
+        if (i == 0 or i == 3) {
+            playZzfxEx(.{ 1, 0, 100, 2e-3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5e-3, 0 }, 1, 0, 0, t);
         }
+
+        const v: f32 = if (i > 1) 0.2 else 0.1;
+        playZzfxEx(.{ 1, 0, 1e3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.1, 0 }, v, 0, 0, t);
+
         t += k;
     }
 }

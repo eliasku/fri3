@@ -1,4 +1,4 @@
-pub const fbits = 8;
+pub const fbits = 4;
 pub const fp32 = i32;
 
 pub fn fromInt(integer_value: i32) fp32 {
