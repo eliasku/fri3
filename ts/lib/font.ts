@@ -14,10 +14,12 @@ export const drawText = (input_ptr: Ptr<void>, output_ptr: Ptr<void>): void => {
   const outPixelsWidthIdx = output_ptr >> 2;
   const outPixelsHeightIdx = (output_ptr >> 2) + 1;
 
-  ctx.font = `normal normal 16px Arial Black`;
+  ctx.font = `normal normal 28px Arial Black`;
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
   ctx.fillStyle = "white";
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 4;
   const {
     width: glyphAdvance,
     actualBoundingBoxAscent,
@@ -43,12 +45,13 @@ export const drawText = (input_ptr: Ptr<void>, output_ptr: Ptr<void>): void => {
   // const height = glyphHeight + 2 * padding;
 
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.strokeText(text, padding, padding + glyphTop);
   ctx.fillText(text, padding, padding + glyphTop);
 
-  const imageData = ctx.getImageData(padding, padding, glyphWidth, glyphHeight);
+  const imageData = ctx.getImageData(padding, padding, glyphWidth + 2, glyphHeight + 2);
   const u8s = new Uint8Array(MEM.buffer);
   u8s.set(imageData.data, bufferPtr);
 
-  u32s[outPixelsWidthIdx] = glyphWidth;
-  u32s[outPixelsHeightIdx] = glyphHeight;
+  u32s[outPixelsWidthIdx] = glyphWidth + 2;
+  u32s[outPixelsHeightIdx] = glyphHeight + 2;
 };

@@ -15,6 +15,10 @@ pub fn next(self: *Self) u32 {
     return temper(x) >> 1;
 }
 
+pub fn int(self: *Self, min: i32, max: i32) i32 {
+    return min + @mod(@as(i32, @intCast(self.next())), max - min);
+}
+
 pub fn float(self: *Self) f32 {
     return unorm_f32_from_u32(self.next());
 }

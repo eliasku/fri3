@@ -72,3 +72,20 @@ pub fn lerp8888(color1: u32, color2: u32, t: f32) u32 {
     const ga = (((ga1 * (one_q8 - t_q8)) + (ga2 * t_q8)) >> 8) & ga_mask;
     return rb | ga;
 }
+
+// t is 0..255
+pub fn lerp8888b(color1: u32, color2: u32, t_q8: u32) u32 {
+    @setRuntimeSafety(false);
+    const rb_mask = 0xff00ff00;
+    const ga_mask = 0x00ff00ff;
+    const one_q8: comptime_int = 1 << 8; // a fixed point representation of 1.0 with 8 fractional bits
+    std.debug.assert(t_q8 >= 0 and t_q8 <= 255);
+    const rb1: u32 = (color1 & rb_mask) >> 8;
+    const rb2 = (color2 & rb_mask) >> 8;
+    const ga1 = (color1 & ga_mask);
+    const ga2 = (color2 & ga_mask);
+
+    const rb = ((rb1 * (one_q8 - t_q8)) + (rb2 * t_q8)) & rb_mask;
+    const ga = (((ga1 * (one_q8 - t_q8)) + (ga2 * t_q8)) >> 8) & ga_mask;
+    return rb | ga;
+}
