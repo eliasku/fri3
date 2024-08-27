@@ -317,6 +317,8 @@ fn updateMobs() void {
 }
 
 pub fn update() void {
+    updateMenu();
+
     if (!level_started) {
         initLevel();
         level_started = true;
@@ -601,17 +603,6 @@ pub fn render() void {
 
     drawParticles();
 
-    for (0..path_num) |i| {
-        const cx = path_x[i];
-        const cy = path_y[i];
-        drawQuad(cx << cell_size_bits, cy << cell_size_bits, cell_size, cell_size, if (path_found) 0xFFFFFFFF else 0xFFFFFF00);
-    }
-    {
-        const cx = path_dest_x;
-        const cy = path_dest_y;
-        drawQuad(cx << cell_size_bits, cy << cell_size_bits, cell_size, cell_size, 0xFFFF0000);
-    }
-
     {
         const _cx = camera_aabb.x >> cell_size_bits;
         const _cy = camera_aabb.y >> cell_size_bits;
@@ -641,6 +632,19 @@ pub fn render() void {
         }
 
         gfx.state.z = 2;
+
+        {
+            for (0..path_num) |i| {
+                const cx = path_x[i];
+                const cy = path_y[i];
+                drawQuad(cx << cell_size_bits, cy << cell_size_bits, cell_size, cell_size, if (path_found) 0xFFFFFFFF else 0xFFFFFF00);
+            }
+
+            const cx = path_dest_x;
+            const cy = path_dest_y;
+            drawQuad(cx << cell_size_bits, cy << cell_size_bits, cell_size, cell_size, 0xFFFF0000);
+        }
+
         const matrix = gfx.state.matrix;
         for (ccy0..ccy1) |cy| {
             for (ccx0..ccx1) |cx| {
@@ -701,23 +705,8 @@ pub fn render() void {
             gfx.state.matrix = mat;
         }
     }
-    // draw text
-    // {
-    //     gfx.state.matrix = Mat2d.identity().scale(Vec2.splat(scale * (1 << fbits)));
-    //     gfx.setTexture(1);
-    //     var buffer: [128 * 128 * 4]u8 = undefined;
-    //     const image = gfx.drawText("Victims", &buffer);
-    //     gfx.setTextureData(.{
-    //         .id = 1,
-    //         .w = image.w,
-    //         .h = image.h,
-    //         .filter = 0,
-    //         .wrap_s = 0,
-    //         .wrap_t = 0,
-    //         .data = gfx.CRange.fromSlice(image.pixels),
-    //     });
-    //     gfx.quad(Vec2.splat(20), Vec2.fromIntegers(image.w, image.h), 0xFFFFFFFF);
-    // }
+
+    drawMenu();
 }
 
 // MUSIC
@@ -837,7 +826,7 @@ fn addParticles(n: i32, x: i32, y: i32) void {
 
 // path find
 
-const path_max = 12;
+const path_max = 16;
 var path_x: [path_max]i32 = undefined;
 var path_y: [path_max]i32 = undefined;
 var path_num: usize = undefined;
@@ -845,46 +834,100 @@ var path_dest_x: i32 = undefined;
 var path_dest_y: i32 = undefined;
 var path_found = false;
 var pf_visited: [1 << (map_size_bits << 1)]u8 = undefined;
+var pf_parent_x: [path_max]i32 = undefined;
+var pf_parent_y: [path_max]i32 = undefined;
 
 fn visitNeighbor(x: i32, y: i32, depth: usize) void {
     if (x > 0 and y > 0 and x < map_size - 1 and y < map_size - 1) {
         const addr = mapPtr(x, y);
-        const cell = map[addr];
-        if (pf_visited[addr] == 0 and cell != 0) {
+        if (pf_visited[addr] == 0 and map[addr] != 0) {
             pf_visited[addr] = 1;
             searchPath(x, y, depth + 1);
-            // pf_visited[addr] = 0;
+            pf_visited[addr] = 0;
         }
     }
 }
 
 fn searchPath(x: i32, y: i32, depth: usize) void {
-    if (path_dest_x == x and path_dest_y == y) {
-        path_found = true;
-        path_num = depth + 1;
-    } else if (depth + 1 < path_max) {
-        visitNeighbor(x - 1, y, depth);
-        visitNeighbor(x + 1, y, depth);
-        visitNeighbor(x, y - 1, depth);
-        visitNeighbor(x, y + 1, depth);
-    }
-
-    if (path_found) {
-        path_x[depth] = x;
-        path_y[depth] = y;
+    const path_len = depth + 1;
+    if (path_num == 0 or path_len < path_num) {
+        pf_parent_x[depth] = x;
+        pf_parent_y[depth] = y;
+        if (path_dest_x == x and path_dest_y == y) {
+            path_num = path_len;
+            var i = path_len;
+            while (i != 0) {
+                i -= 1;
+                path_x[i] = pf_parent_x[i];
+                path_y[i] = pf_parent_y[i];
+            }
+        } else if (path_len < path_max) {
+            visitNeighbor(x - 1, y, depth);
+            visitNeighbor(x + 1, y, depth);
+            visitNeighbor(x, y - 1, depth);
+            visitNeighbor(x, y + 1, depth);
+        }
     }
 }
 
 fn findPath(bx: i32, by: i32, ex: i32, ey: i32) bool {
-    @memset(&pf_visited, 0);
-
     path_num = 0;
     path_dest_x = ex;
     path_dest_y = ey;
-    path_found = false;
     const addr = mapPtr(bx, by);
     pf_visited[addr] = 1;
     searchPath(bx, by, 0);
-    //pf_visited[addr] = 0;
+    pf_visited[addr] = 0;
+    path_found = path_num > 0;
     return path_found;
+}
+
+// MENU
+var game_state: u8 = 0;
+var t_transition: u8 = 0;
+
+fn updateMenu() void {
+    if (game_state == 0) {
+        if (gain.pointers.primary()) |p| {
+            if (p.down) {
+                game_state = 1;
+            }
+        }
+    } else if (game_state == 1) {
+        if (t_transition < 15) {
+            t_transition += 1;
+        }
+    } else if (game_state == 2) {
+        if (t_transition > 0) {
+            t_transition -= 1;
+        }
+    }
+}
+
+fn drawMenu() void {
+    // draw text
+    if (t_transition < 15) {
+        gfx.state.matrix = Mat2d.identity(); //.scale(Vec2.splat(scale * (1 << fbits)));
+        gfx.setTexture(0);
+        drawRect(FPRect.init(0, 0, @intCast(app.w), @intCast(app.h)), Color32.lerp8888b(
+            0xFF000000,
+            0x00000000,
+            t_transition << 4,
+        ));
+        gfx.setTexture(1);
+        var buffer: [128 * 128 * 4]u8 = undefined;
+        const image = gfx.drawText("START GAME", &buffer);
+        gfx.setTextureData(.{
+            .id = 1,
+            .w = image.w,
+            .h = image.h,
+            .filter = 0,
+            .wrap_s = 0,
+            .wrap_t = 0,
+            .data = gfx.CRange.fromSlice(image.pixels),
+        });
+        const w = image.w * 4;
+        const h = image.h * 4;
+        gfx.quad(Vec2.fromIntegers(app.w / 2 - w / 2, app.h / 2 - h / 2), Vec2.fromIntegers(w, h), 0xFFFF0000);
+    }
 }
