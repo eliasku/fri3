@@ -34,14 +34,18 @@ pub fn translate(self: Self, dx: i32, dy: i32) Self {
     };
 }
 
+pub fn expand(self: Self, ex: i32, ey: i32) Self {
+    return .{
+        .x = self.x - ex,
+        .y = self.y - ey,
+        .w = self.w + (ex << 1),
+        .h = self.h + (ey << 1),
+    };
+}
+
 pub fn expandInt(self: Self, v: i32) Self {
     const s = v << fp32.fbits;
-    return .{
-        .x = self.x - s,
-        .y = self.y - s,
-        .w = self.w + (s << 1),
-        .h = self.h + (s << 1),
-    };
+    return self.expand(s, s);
 }
 
 pub fn r(self: Self) i32 {

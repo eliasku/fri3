@@ -20,9 +20,6 @@ const Item = struct {
     kind: u8,
 };
 
-var goals: [13]u8 = std.mem.zeroes([13]u8);
-const goals_num = 13;
-
 const fbits = fp32.fbits;
 const Cell = u8;
 const map_size_bits = 8;
@@ -64,6 +61,8 @@ const Mob = struct {
     ai_timer: i32,
     hp: i32,
     hit_timer: u32,
+    target_map_x: i32,
+    target_map_y: i32,
 };
 
 fn placeMob(x: i32, y: i32, kind: u8) void {
@@ -77,6 +76,8 @@ fn placeMob(x: i32, y: i32, kind: u8) void {
         .ai_timer = 0,
         .hp = 8,
         .hit_timer = 0,
+        .target_map_x = 0,
+        .target_map_y = 0,
     };
     mobs_num += 1;
 }
@@ -242,7 +243,6 @@ fn updateMobs() void {
     for (0..mobs_num) |i| {
         const mob: *Mob = &mobs[i];
         if (mob.kind != 0) {
-            mob.*.ai_timer -= 1;
             if (mob.*.ai_timer <= 0) {
                 if (g_rnd.next() & 7 == 0) {
                     mob.*.lx = 0;
@@ -256,8 +256,41 @@ fn updateMobs() void {
                     mob.*.ly = dy;
                 }
                 mob.*.ai_timer = @intCast(g_rnd.next() & 0x3f);
-            }
 
+                _ = findPath(mob.x >> cell_size_bits, mob.y >> cell_size_bits, hero.x >> cell_size_bits, hero.y >> cell_size_bits);
+                if (path_num > 1) {
+                    mob.*.target_map_x = path_x[1];
+                    mob.*.target_map_y = path_y[1];
+                    //mob.*.lx = ((path_x[1] << cell_size_bits) + cell_size_half) - mob.x;
+                    //mob.*.ly = ((path_y[1] << cell_size_bits) + cell_size_half) - mob.y;
+                } else {
+                    mob.*.target_map_x = 0;
+                    mob.*.target_map_y = 0;
+                }
+            }
+            if (mob.*.target_map_x != 0) {
+                const tx: i32 = (mob.*.target_map_x << cell_size_bits) + cell_size_half;
+                const ty: i32 = (mob.*.target_map_y << cell_size_bits) + cell_size_half;
+                if (tx < mob.x) {
+                    mob.*.lx = -1 << fbits;
+                } else if (tx > mob.x) {
+                    mob.*.lx = 1 << fbits;
+                } else {
+                    mob.*.lx = 0;
+                }
+                if (ty < mob.y) {
+                    mob.*.ly = -1 << fbits;
+                } else if (ty > mob.y) {
+                    mob.*.ly = 1 << fbits;
+                } else {
+                    mob.*.ly = 0;
+                }
+                if (mob.x == tx and mob.y == ty) {
+                    mob.*.ai_timer = 0;
+                }
+            } else {
+                mob.*.ai_timer -= 1;
+            }
             if (mob.*.lx != 0 or mob.*.ly != 0) {
                 mob.*.move_timer +%= 2;
                 const new_x = mob.x + mob.*.lx;
@@ -382,13 +415,13 @@ pub fn update() void {
                 //mob.*.lx = mob.x - aabb.cx();
                 //mob.*.ly = mob.y - aabb.cy();
                 playZzfx(.{ 1, 0.05, 337, 0.01, 0.02, 0.1, 0, 2.17, -6.3, 3.5, 0, 0, 0, 1.2, 0, 10, 0.01, 0.69, 0.07, 0.03 });
-                addParticles(10, mob_aabb.cx(), mob_aabb.cy());
+                addParticles(32, mob_aabb.cx(), mob_aabb.cy());
                 if (mob.*.hp <= 0) {
                     mob.*.kind = 0;
 
                     kills += 1;
 
-                    addParticles(20, mob_aabb.cx(), mob_aabb.cy());
+                    addParticles(64, mob_aabb.cx(), mob_aabb.cy());
                 }
             }
         }
@@ -568,6 +601,17 @@ pub fn render() void {
 
     drawParticles();
 
+    for (0..path_num) |i| {
+        const cx = path_x[i];
+        const cy = path_y[i];
+        drawQuad(cx << cell_size_bits, cy << cell_size_bits, cell_size, cell_size, if (path_found) 0xFFFFFFFF else 0xFFFFFF00);
+    }
+    {
+        const cx = path_dest_x;
+        const cy = path_dest_y;
+        drawQuad(cx << cell_size_bits, cy << cell_size_bits, cell_size, cell_size, 0xFFFF0000);
+    }
+
     {
         const _cx = camera_aabb.x >> cell_size_bits;
         const _cy = camera_aabb.y >> cell_size_bits;
@@ -640,12 +684,12 @@ pub fn render() void {
         gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(camera_aabb.cx(), camera_aabb.y));
         const space_x: i32 = @divTrunc(512 << fbits, 14);
         gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers((-(512 << fbits) >> 1), 20 << fbits));
-        for (0..goals_num) |i| {
+        for (0..13) |i| {
             var rc = FPRect.init(0, 0, 0, 0);
 
             gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(space_x, 0));
             const mat = gfx.state.matrix;
-            gfx.state.matrix = gfx.state.matrix.rotate(0.1);
+            gfx.state.matrix = gfx.state.matrix.rotate(0.1); // * @as(f32, @floatFromInt(i / 3)));
             //gfx.state.matrix = gfx.state.matrix.rotate(0.1);
             drawRect(rc.expandInt(12).translate(1 << fbits, 1 << fbits), 0xFF111111);
             drawRect(rc.expandInt(10), 0xFFCCCCCC);
@@ -719,6 +763,7 @@ const Particle = struct {
     t: i32,
     max_time: i32,
     color: u32,
+    size: i32,
 };
 
 var particles: [1024]Particle = undefined;
@@ -731,15 +776,24 @@ fn updateParticles() void {
             p.*.t -= 1;
             //p.*.p = p.p.add(p.v);
             const f = fp32.div(p.t, p.max_time);
-            p.x += fp32.mul(p.vx, f);
-            p.y += fp32.mul(p.vy, f);
+            const x2 = p.x + fp32.mul(p.vx, f);
+            const y2 = p.y + fp32.mul(p.vy, f);
+            if (getMapPoint(x2, p.y) == 0) {
+                p.vx = -p.vx;
+            } else {
+                p.x = x2;
+            }
+            if (getMapPoint(p.x, y2) == 0) {
+                p.vy = -p.vy;
+            } else {
+                p.y = y2;
+            }
         }
 
-        p.z += p.vz;
-        p.vz -= 1;
-        if (p.z < 0) {
-            p.z = 0;
-            p.vz = -fp32.mul(p.vz, fp32.fromFloat(0.5));
+        if (p.z > 0) {
+            p.z = @max(0, p.z + p.vz);
+            p.vz -= 2;
+            //p.vz = -fp32.mul(p.vz, fp32.fromFloat(0.5));
         }
     }
 }
@@ -748,31 +802,89 @@ fn drawParticles() void {
     for (0..particles_num) |i| {
         const p = &particles[i];
         setDepth(p.x, p.y);
-        drawRect(FPRect.init(p.x, p.y - p.z, 0, 0).expandInt(1), p.color);
+        drawRect(FPRect.init(p.x, p.y - p.z, 0, 0).expand(p.size, p.size >> 1), p.color);
     }
 }
 
 fn drawParticlesShadows() void {
     for (0..particles_num) |i| {
         const p = &particles[i];
-        drawRect(FPRect.init(p.x, p.y, 0, 0).expandInt(1), 0x77000000);
+        drawRect(FPRect.init(p.x, p.y, 0, 0).expand(p.size, p.size >> 1), 0x77000000);
     }
 }
 
 fn addParticles(n: i32, x: i32, y: i32) void {
     const N: usize = @intCast(n);
     for (0..N) |_| {
+        const d = g_rnd.frange(0, 5);
+        const a = g_rnd.frange(0, std.math.tau);
+        const t = g_rnd.int(10, 20);
         particles[particles_num] = .{
             .x = x,
             .y = y,
             .z = g_rnd.int(0, 20 << fbits),
-            .vx = g_rnd.int(-100, 100),
-            .vy = g_rnd.int(-100, 100),
+            .vx = fp32.fromFloat(d * gain.math.costau(a)),
+            .vy = fp32.fromFloat(d * gain.math.sintau(a) / 2),
             .vz = 0,
             .color = 0xFFCC0000,
-            .max_time = 20,
-            .t = 20,
+            .max_time = t,
+            .t = t,
+            .size = g_rnd.int(1, 4) << fbits,
         };
         particles_num += 1;
     }
+}
+
+// path find
+
+const path_max = 12;
+var path_x: [path_max]i32 = undefined;
+var path_y: [path_max]i32 = undefined;
+var path_num: usize = undefined;
+var path_dest_x: i32 = undefined;
+var path_dest_y: i32 = undefined;
+var path_found = false;
+var pf_visited: [1 << (map_size_bits << 1)]u8 = undefined;
+
+fn visitNeighbor(x: i32, y: i32, depth: usize) void {
+    if (x > 0 and y > 0 and x < map_size - 1 and y < map_size - 1) {
+        const addr = mapPtr(x, y);
+        const cell = map[addr];
+        if (pf_visited[addr] == 0 and cell != 0) {
+            pf_visited[addr] = 1;
+            searchPath(x, y, depth + 1);
+            // pf_visited[addr] = 0;
+        }
+    }
+}
+
+fn searchPath(x: i32, y: i32, depth: usize) void {
+    if (path_dest_x == x and path_dest_y == y) {
+        path_found = true;
+        path_num = depth + 1;
+    } else if (depth + 1 < path_max) {
+        visitNeighbor(x - 1, y, depth);
+        visitNeighbor(x + 1, y, depth);
+        visitNeighbor(x, y - 1, depth);
+        visitNeighbor(x, y + 1, depth);
+    }
+
+    if (path_found) {
+        path_x[depth] = x;
+        path_y[depth] = y;
+    }
+}
+
+fn findPath(bx: i32, by: i32, ex: i32, ey: i32) bool {
+    @memset(&pf_visited, 0);
+
+    path_num = 0;
+    path_dest_x = ex;
+    path_dest_y = ey;
+    path_found = false;
+    const addr = mapPtr(bx, by);
+    pf_visited[addr] = 1;
+    searchPath(bx, by, 0);
+    //pf_visited[addr] = 0;
+    return path_found;
 }
