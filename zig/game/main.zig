@@ -86,7 +86,7 @@ const hit_timer_max = 15;
 const Mob = struct {
     x: i32,
     y: i32,
-    kind: u8,
+    kind: i32,
     move_timer: u32,
     lx: i32,
     ly: i32,
@@ -100,7 +100,7 @@ const Mob = struct {
     attention: u32,
 };
 
-fn placeMob(x: i32, y: i32, kind: u8) void {
+fn placeMob(x: i32, y: i32, kind: i32) void {
     mobs[mobs_num] = .{
         .x = cell_size_half + (x << cell_size_bits),
         .y = cell_size_half + (y << cell_size_bits),
@@ -219,10 +219,10 @@ fn initLevel() void {
                     const pp = rnd.next() & 7;
                     switch (pp) {
                         0 => if (mobs_gen > 0) {
-                            placeMob(x, y, 1);
+                            placeMob(x, y, rnd.int(1, 3));
                             mobs_gen -= 1;
                         },
-                        1 => if (portals_num > 0 and portals_gen > 0) {
+                        1 => if (portals_num > 2 and portals_gen > 0) {
                             const p = portals[rnd.next() % portals_num];
                             addPortal(x, y, p.src.x >> cell_size_bits, p.src.y >> cell_size_bits, room_x, room_y);
                             portals_gen -= 1;
@@ -555,29 +555,35 @@ fn getHeroOffY(move_timer: u32) i32 {
     return @intCast((((move_timer & 31) + 7) >> 4) << fbits);
 }
 
-fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: u32, body_color: u32) void {
+fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: u32, body_color: u32, is_hero: bool) void {
     const x = px + hero_aabb_local.x;
     const y = py + hero_aabb_local.y;
     const hero_y_off = getHeroOffY(move_timer);
 
-    gfx.depth(px, py);
+    const ss = fp32.fromFloat(0.2 * gain.math.sin(@floatFromInt(move_timer >> 2)));
+    if (is_hero) {
+        gfx.knife(x + hero_w, y + (18 << fbits) - hero_y_off, ss);
+        gfx.push(dx + x + (hero_w >> 1), dy + y + (4 << fbits) + (hero_y_off >> 1), 0);
+        gain.gfx.fillCircle(Vec2.fromIntegers(-3 << fbits, -3 << fbits), Vec2.fromIntegers(1 << fbits, 1 << fbits), 4, 0xFF000000);
+        gain.gfx.fillCircle(Vec2.fromIntegers(3 << fbits, 3 << fbits), Vec2.fromIntegers(1 << fbits, 1 << fbits), 4, 0xFF000000);
+        gain.gfx.fillCircle(Vec2.fromIntegers(-3 << fbits, 3 << fbits), Vec2.fromIntegers(1 << fbits, 1 << fbits), 4, 0xFF000000);
+        gain.gfx.fillCircle(Vec2.fromIntegers(3 << fbits, -3 << fbits), Vec2.fromIntegers(1 << fbits, 1 << fbits), 4, 0xFF000000);
 
-    // eyes
-    if (dy >= 0) {
-        gfx.quad(dx + x + (2 << fbits), dy + y + (4 << fbits) - (hero_y_off >> 1), 2 << fbits, 4 << fbits, 0xFF000000);
-        gfx.quad(dx + x + hero_w - (4 << fbits), dy + y + (4 << fbits) - (hero_y_off >> 1), 2 << fbits, 4 << fbits, 0xFF000000);
+        gain.gfx.fillCircle(Vec2.fromIntegers(-2 << fbits, 0 << fbits), Vec2.fromIntegers(1 << fbits, 2 << fbits), 6, 0xFF000000);
+        gain.gfx.fillCircle(Vec2.fromIntegers(2 << fbits, 0 << fbits), Vec2.fromIntegers(1 << fbits, 2 << fbits), 6, 0xFF000000);
+        gain.gfx.fillCircle(Vec2.fromIntegers(0, 0), Vec2.fromIntegers(6 << fbits, 7 << fbits), 10, 0xFFFFEEDD);
+        gfx.restore();
     }
 
-    gain.gfx.lineQuad(
-        Vec2.fromIntegers(x + (hero_w >> 1), y + (18 << fbits) - hero_y_off),
-        Vec2.fromIntegers(x + (hero_w >> 1), y + (22 << fbits) - hero_y_off),
-        0xFFFF00FF,
-        0xFFFF00FF,
-        11 << fbits,
-        0,
-    );
+    if (!is_hero) {
+        gfx.head(x + (hero_w >> 1), y + (4 << fbits) - (hero_y_off >> 1), dx, dy, body_color, 0x0, 0xFF000000, 0);
 
-    gfx.quad(x, y - hero_y_off, hero_w, hero_h - hero_y_off - (2 << fbits), body_color);
+        gfx.push(x + (hero_w >> 1), y + (20 << fbits) - hero_y_off, ss);
+        gfx.trouses(0xFFFF00FF);
+        gfx.restore();
+    }
+
+    gfx.quad(x, y - hero_y_off + (8 << fbits), hero_w, hero_h - hero_y_off - (2 << fbits) - (8 << fbits), body_color);
 
     gfx.quad(x - (2 << fbits), y + (10 << fbits) - hero_y_off, 2 << fbits, 8 << fbits, body_color);
     gfx.quad(x + hero_w, y + (10 << fbits) - hero_y_off, 2 << fbits, 8 << fbits, body_color);
@@ -588,12 +594,13 @@ fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: u32, body_color: 
 
 fn drawHero() void {
     const body_color = Color32.lerp8888b(0xFF888888, 0xFFFFFFFF, hero_visible << 3);
-    drawTempMan(hero.x, hero.y, hero_look_x, hero_look_y, hero_move_timer, body_color);
+    gfx.depth(hero.x, hero.y);
+    drawTempMan(hero.x, hero.y, hero_look_x, hero_look_y, hero_move_timer, body_color, true);
 }
 
 fn drawManShadow(x: i32, y: i32, move_timer: u32) void {
     const y_off = getHeroOffY(move_timer) >> fbits;
-    gfx.rect(hero_ground_aabb_local.translate(x, y), @as(u32, @intCast(0x44 - 0x20 * y_off)) << 24);
+    gfx.shadow(x, y, 7 << fbits, @as(u32, @intCast(0x44 - 0x20 * y_off)) << 24);
 }
 
 fn drawPortals() void {
@@ -635,7 +642,8 @@ fn drawMob(i: usize) void {
     }
 
     body_color = Color32.lerp8888b(body_color, 0xFFFFFFFF, mob.hit_timer << 4);
-    drawTempMan(x, y, mob.lx, mob.ly, mob.move_timer, body_color);
+    gfx.depth(x, y);
+    drawTempMan(x, y, mob.lx, mob.ly, mob.move_timer, body_color, false);
 }
 
 fn getScreenScale() f32 {

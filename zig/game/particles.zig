@@ -70,7 +70,8 @@ pub fn drawShadows(camera_rc: FPRect) void {
     for (0..particles_num) |i| {
         const p = particles[i];
         if (camera_rc.test2(p.x, p.y)) {
-            gfx.rect(FPRect.init(p.x, p.y, 0, 0).expand(p.size, p.size >> 1), 0x77000000);
+            gfx.shadow(p.x, p.y, p.size, 0x77000000);
+            //gfx.rect(FPRect.init(p.x, p.y, 0, 0).expand(p.size, p.size >> 1), 0x77000000);
         }
     }
 }
