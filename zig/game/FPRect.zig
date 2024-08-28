@@ -71,3 +71,10 @@ pub fn overlaps(self: Self, other: Self) bool {
         (other.x - self.r()) &
         (other.y - self.b()) & -2147483648) != 0;
 }
+
+pub fn test2(self: Self, x: i32, y: i32) bool {
+    return ((self.x - x) &
+        (self.y - y) &
+        (x - self.r()) &
+        (y - self.b()) & -2147483648) != 0;
+}
