@@ -399,7 +399,7 @@ fn updateGame() void {
 
     if (gain.pointers.primary()) |p| {
         if (p.is_down) {
-            const d = p.rc.center().sub(p.start.center());
+            const d = p.pos.sub(p.start);
             const dist = getScreenScale() * (32 << fbits);
             if (d.length() >= dist) {
                 move_dir = d;
@@ -654,16 +654,15 @@ fn getScreenScale() f32 {
 pub fn render() void {
     gain.gfx.setupOpaquePass();
     gain.gfx.state.matrix = Mat2d.identity();
-    gain.gfx.setTexture(0);
 
     const scale = getScreenScale();
 
     if (gain.pointers.primary()) |p| {
         if (p.is_down) {
             gain.gfx.state.z = 10;
-            gain.gfx.fillCircle(p.rc.center(), Vec2.splat(scale * (24 << fbits)), 64, 0xFF999999);
-            gain.gfx.fillCircle(p.start.center(), Vec2.splat(scale * (60 << fbits)), 64, 0xFF444444);
-            gain.gfx.fillCircle(p.start.center(), Vec2.splat(scale * (64 << fbits)), 64, 0xFF111111);
+            gain.gfx.fillCircle(p.pos, Vec2.splat(scale * (24 << fbits)), 64, 0xFF999999);
+            gain.gfx.fillCircle(p.start, Vec2.splat(scale * (60 << fbits)), 64, 0xFF444444);
+            gain.gfx.fillCircle(p.start, Vec2.splat(scale * (64 << fbits)), 64, 0xFF111111);
         }
     }
 
@@ -854,7 +853,6 @@ fn drawMenu() void {
     // draw text
     if (no_black_screen_t < 15) {
         gain.gfx.state.matrix = Mat2d.identity(); //.scale(Vec2.splat(scale * (1 << fbits)));
-        gain.gfx.setTexture(0);
         gfx.rect(FPRect.init(0, 0, @intCast(app.w), @intCast(app.h)), Color32.lerp8888b(
             0xFF000000,
             0x00000000,

@@ -23,31 +23,22 @@ pub const Imports = if (enabled) struct {
 	pub const playUserAudioBuffer = b;
 
 	extern "0" fn c(id: u32) void;
-	pub const setTexture = c;
+	pub const setupPass = c;
 
-	extern "0" fn d(desc_ptr: *const anyopaque) void;
-	pub const setTextureData = d;
+	extern "0" fn d(msg_ptr: [*]const u8, msg_len: usize) void;
+	pub const log = d;
 
-	extern "0" fn e(id: u32) void;
-	pub const setupPass = e;
+	extern "0" fn e(x: f32) f32;
+	pub const sin = e;
 
-	extern "0" fn f(msg_ptr: [*]const u8, msg_len: usize) void;
-	pub const log = f;
+	extern "0" fn f(x: f32) f32;
+	pub const cos = f;
 
-	extern "0" fn g(input: *const anyopaque, output: *anyopaque) void;
-	pub const drawText = g;
+	extern "0" fn g(x: f32, y: f32) f32;
+	pub const pow = g;
 
-	extern "0" fn h(x: f32) f32;
-	pub const sin = h;
-
-	extern "0" fn i(x: f32) f32;
-	pub const cos = i;
-
-	extern "0" fn j(x: f32, y: f32) f32;
-	pub const pow = j;
-
-	extern "0" fn k(x: f32, y: f32) f32;
-	pub const atan2 = k;
+	extern "0" fn h(x: f32, y: f32) f32;
+	pub const atan2 = h;
 
     pub const enabled = true;
 } else struct {

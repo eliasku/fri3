@@ -9,8 +9,6 @@ export type PointerCallback = (
     type: u32,
     x: f32,
     y: f32,
-    w: f32,
-    h: f32,
 ) => void;
 
 export const PointerEventType = {
@@ -51,10 +49,8 @@ export const setupInput = (pointerCallback: PointerCallback, keyboardCallback: K
             e.buttons,
             event,
             pointerTypeMap[e.pointerType],
-            (e.clientX - _bb.x) * _s,
-            (e.clientY - _bb.y) * _s,
-            e.width * _s,
-            e.height * _s,
+            (e.clientX - _bb.x + e.width / 2) * _s,
+            (e.clientY - _bb.y + e.height / 2) * _s,
         );
     };
 

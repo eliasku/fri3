@@ -13,20 +13,11 @@ const imports: Record<string, any> = {
   playUserAudioBuffer: {
     sig: "(samples: [*]const f32, length: u32, vol: f32, pan: f32, note: f32, when: f32) void",
   },
-  setTexture: {
-    sig: "(id: u32) void",
-  },
-  setTextureData: {
-    sig: "(desc_ptr: *const anyopaque) void",
-  },
   setupPass: {
     sig: "(id: u32) void",
   },
   log: {
     sig: "(msg_ptr: [*]const u8, msg_len: usize) void",
-  },
-  drawText: {
-    sig: "(input: *const anyopaque, output: *anyopaque) void",
   },
   sin: {
     sig: "(x: f32) f32",

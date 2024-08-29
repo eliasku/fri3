@@ -3,11 +3,8 @@ import { GL, gl } from "../lib/base/webgl";
 export interface Program {
   _instance: WebGLProgram;
   _uMVP: WebGLUniformLocation;
-  _uImage0: WebGLUniformLocation | null;
   _aPosition: GLint;
-  _aTexCoord: GLint;
   _aColorMul: GLint;
-  _aColorAdd: GLint;
 }
 
 const compileShader = (
@@ -63,21 +60,12 @@ const createProgram = (vs: string, fs: string): WebGLProgram => {
 };
 
 export const SHADER_A_POSITION = "x";
-export const SHADER_A_TEX_COORD = "y";
-export const SHADER_A_COLOR_MUL = "z";
-export const SHADER_A_COLOR_ADD = "w";
-export const SHADER_U_IMAGE_0 = "i";
+export const SHADER_A_COLOR_MUL = "y";
 export const SHADER_U_MVP = "m";
 
-export const createProgramObject = (vs: string, fs: string): Program => {
-  const p = createProgram(vs, fs);
-  return {
-    _instance: p,
-    _uMVP: gl.getUniformLocation(p, SHADER_U_MVP)!,
-    _uImage0: gl.getUniformLocation(p, SHADER_U_IMAGE_0),
-    _aPosition: gl.getAttribLocation(p, SHADER_A_POSITION),
-    _aTexCoord: gl.getAttribLocation(p, SHADER_A_TEX_COORD),
-    _aColorMul: gl.getAttribLocation(p, SHADER_A_COLOR_MUL),
-    _aColorAdd: gl.getAttribLocation(p, SHADER_A_COLOR_ADD),
-  };
-};
+export const createProgramObject = (vs: string, fs: string, p = createProgram(vs, fs)): Program => ({
+  _instance: p,
+  _uMVP: gl.getUniformLocation(p, SHADER_U_MVP)!,
+  _aPosition: gl.getAttribLocation(p, SHADER_A_POSITION),
+  _aColorMul: gl.getAttribLocation(p, SHADER_A_COLOR_MUL),
+});

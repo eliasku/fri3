@@ -47,7 +47,7 @@ pub inline fn configure(comptime update: fn () void, comptime render: fn () void
             gfx.endFrame();
         }
 
-        export fn onPointerEvent(id: u32, primary: u32, buttons: u32, event: u32, device: u32, x: f32, y: f32, w: f32, h: f32) void {
+        export fn onPointerEvent(id: u32, primary: u32, buttons: u32, event: u32, device: u32, x: f32, y: f32) void {
             pointers.onEvent(
                 id,
                 primary,
@@ -55,10 +55,8 @@ pub inline fn configure(comptime update: fn () void, comptime render: fn () void
                 @enumFromInt(event),
                 @enumFromInt(device),
                 .{
-                    .x = x - w / 2,
-                    .y = y - h / 2,
-                    .w = w,
-                    .h = h,
+                    .x = x,
+                    .y = y,
                 },
             );
         }

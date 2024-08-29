@@ -7,11 +7,9 @@ import {
 import { gl } from "./base/webgl";
 import { playUserAudioBuffer } from "./base/audio";
 import { setupInput } from "./base/input";
-import { MEM, decodeText, initMemoryObjects } from "./base/mem";
-import { __setTexture, __setTextureData } from "./texture";
+import { decodeText, initMemoryObjects } from "./base/mem";
 import { addStatsView, updateStatsText } from "./dev/stats";
 import { createExportMap, importZigFunctions } from "../_bridge";
-import { drawText } from "./font";
 
 let { sin, cos, pow, atan2 } = Math;
 
@@ -21,10 +19,7 @@ export const importMap = createExportMap({
   },
   _drawTriangles: drawTriangles,
   _playUserAudioBuffer: playUserAudioBuffer,
-  _setTexture: __setTexture,
-  _setTextureData: __setTextureData,
   _setupPass: (id: u32): void => (id ? setupBlendPass() : setupOpaquePass()),
-  _drawText: drawText,
   _sin: sin,
   _cos: cos,
   _pow: pow,

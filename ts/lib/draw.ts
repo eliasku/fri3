@@ -1,6 +1,5 @@
 import { MEM } from "./base/mem";
-import { opaqueProgram } from "../shaders/opaque";
-import { blendProgram } from "../shaders/blend";
+import { mainProgram } from "../shaders/main";
 import { Program, bindAttrib } from "../shaders/program";
 import { GL, gl } from "./base/webgl";
 import { addRenderStats } from "./dev/stats";
@@ -24,40 +23,27 @@ export const calcOrtho2D = (w: number, h: number) => [
   1,
 ];
 
+let mvp: number[];
+let viewportW: number;
+let viewportH: number;
+
 export const beginFrame = (w: number, h: number) => {
   gl.viewport(0, 0, w, h);
   // defaults:
   // gl.clearDepth(1);
   gl.clear(GL.DEPTH_BUFFER_BIT);
 
-  setupViewport2d(w, h);
-};
-
-let mvp: number[];
-let viewportW: number;
-let viewportH: number;
-
-const setupViewport2d = (w: number, h: number) => {
   viewportW = w;
   viewportH = h;
   mvp = calcOrtho2D(w, h);
-};
-
-let currentProgram: Program;
-const setupProgram = (program: Program) => {
-  gl.useProgram(program._instance);
-  gl.uniformMatrix4fv(program._uMVP, false, mvp);
-  if (program._uImage0) {
-    gl.uniform1i(program._uImage0, 0);
-  }
+  gl.useProgram(mainProgram._instance);
+  gl.uniformMatrix4fv(mainProgram._uMVP, false, mvp);
   // if (program._uResolution) {
   //   gl.uniform2f(program._uResolution, viewportW, viewportH);
   // }
-  currentProgram = program;
 };
 
 export const setupOpaquePass = () => {
-  setupProgram(opaqueProgram);
   gl.disable(GL.BLEND);
   gl.enable(GL.DEPTH_TEST);
   gl.depthFunc(GL.LESS);
@@ -68,7 +54,6 @@ export const setupOpaquePass = () => {
 };
 
 export const setupBlendPass = () => {
-  setupProgram(blendProgram);
   gl.enable(GL.BLEND);
   gl.blendFunc(GL.ONE, GL.ONE_MINUS_SRC_ALPHA);
   gl.enable(GL.DEPTH_TEST);
@@ -92,7 +77,7 @@ export const drawTriangles = (
     dynamicBuffers[j] = gl.createBuffer()!;
   }
   // bind buffers to program
-  const vertexByteSize = (3 + 2 + 1 + 1) << 2;
+  const vertexByteSize = (3 + 1) << 2;
 
   // select buffers
   gl.bindBuffer(GL.ARRAY_BUFFER, dynamicBuffers[i]);
@@ -111,23 +96,14 @@ export const drawTriangles = (
   );
 
   // bind buffers to program
-  bindAttrib(currentProgram._aPosition, 3, vertexByteSize, 0, GL.FLOAT, false);
-  bindAttrib(currentProgram._aTexCoord, 2, vertexByteSize, 12, GL.FLOAT, false);
+  bindAttrib(mainProgram._aPosition, 3, vertexByteSize, 0, GL.FLOAT, false);
   bindAttrib(
-    currentProgram._aColorMul,
+    mainProgram._aColorMul,
     4,
     vertexByteSize,
-    20,
+    12,
     GL.UNSIGNED_BYTE,
-    true,
-  );
-  bindAttrib(
-    currentProgram._aColorAdd,
-    4,
-    vertexByteSize,
-    24,
-    GL.UNSIGNED_BYTE,
-    true,
+    true
   );
 
   // draw triangles

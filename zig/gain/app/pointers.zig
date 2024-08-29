@@ -1,6 +1,5 @@
 const std = @import("std");
 const Vec2 = @import("../math/Vec2.zig");
-const Rect = @import("../math/Rect.zig");
 
 pub const EventType = enum(u32) {
     down = 0,
@@ -19,8 +18,8 @@ pub const DeviceType = enum(u32) {
 const Pointer = struct {
     id: u32,
     device: DeviceType,
-    rc: Rect,
-    start: Rect,
+    pos: Vec2,
+    start: Vec2,
     down: bool,
     up: bool,
     is_down: bool,
@@ -61,10 +60,10 @@ pub fn reset() void {
     }
 }
 
-pub fn onEvent(id: u32, is_primary: u32, buttons: u32, event: EventType, device: DeviceType, rc: Rect) void {
+pub fn onEvent(id: u32, is_primary: u32, buttons: u32, event: EventType, device: DeviceType, pos: Vec2) void {
     const p = get(id) orelse items.addOne() catch @panic("");
     p.id = id;
-    p.rc = rc;
+    p.pos = pos;
     p.is_primary = is_primary != 0;
     p.device = device;
     p.buttons = buttons;
@@ -72,7 +71,7 @@ pub fn onEvent(id: u32, is_primary: u32, buttons: u32, event: EventType, device:
         .down => {
             p.active = true;
             p.is_down = true;
-            p.start = rc;
+            p.start = pos;
             p.down = true;
         },
         .move => p.active = true,

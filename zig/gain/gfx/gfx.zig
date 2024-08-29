@@ -15,27 +15,23 @@ const State = struct {
     z: f32 = undefined,
     matrix: Mat2d = undefined,
     color: u32 = undefined,
-    color_add: u32 = 0,
     buffer: u32 = 0,
     index: u32 = 0,
     vertex: u16 = 0,
     vb: [vertices_max]Vertex = undefined,
     ib: [indices_max]u16 = undefined,
-    // selected texture, will be used on flush
-    texture: u32 = 0,
-
     buffer_handle_frame_counter: u32 = 0,
 };
 
 pub var state: State = State{};
 
-pub fn pushTransformedVertex2D(pos: Vec2, uv: Vec2, color: u32) void {
+pub fn pushTransformedVertex2D(pos: Vec2, color: u32) void {
+    const xy = pos.transform(state.matrix);
     state.vb[state.vertex] = Vertex.init(
-        pos.transform(state.matrix),
+        xy.x,
+        xy.y,
         state.z,
-        uv,
         Color32.fromARGB(color).abgr(),
-        state.color_add,
     );
     state.vertex += 1;
 }
@@ -79,7 +75,6 @@ pub fn requireTriangles(vertices: u32, indices: u32) void {
 pub fn flush() void {
     if (state.index != 0) {
         if (js.enabled) {
-            js.setTexture(state.texture);
             js.drawTriangles(std.mem.asBytes(&state.vb), @as(u32, state.vertex) * @sizeOf(Vertex), &state.ib, state.index, state.buffer);
         }
         state.buffer += 2;
@@ -93,7 +88,6 @@ pub fn setupOpaquePass() void {
     if (js.enabled) {
         js.setupPass(0);
     }
-    state.texture = 0;
 }
 
 pub fn setupBlendPass() void {
@@ -101,79 +95,24 @@ pub fn setupBlendPass() void {
     if (js.enabled) {
         js.setupPass(1);
     }
-    state.texture = 0;
-}
-
-pub fn setTexture(id: u32) void {
-    if (state.texture != id) {
-        flush();
-        state.texture = id;
-        // if (js.enabled) {
-        //     js.setTexture(id);
-        // }
-    }
-}
-
-pub const CRange = extern struct {
-    ptr: u32,
-    len: u32,
-
-    pub fn fromSlice(slice: anytype) CRange {
-        return .{
-            .ptr = @intCast(@intFromPtr(slice.ptr)),
-            .len = @intCast(slice.len),
-        };
-    }
-};
-
-pub const TextureDesc = extern struct {
-    id: u32,
-    w: u32,
-    h: u32,
-    filter: u32,
-    wrap_s: u32,
-    wrap_t: u32,
-    data: CRange,
-};
-
-pub fn setTextureData(desc: TextureDesc) void {
-    if (js.enabled) {
-        js.setTextureData(@ptrCast(&desc));
-    }
-}
-
-fn lerpColor32(color1: u32, color2: u32, t: f32) u32 {
-    const RBmask = 0xff00ff00;
-    const GAmask = 0x00ff00ff;
-    const one_q8 = 1 << 8; // a fixed point representation of 1.0 with 8 fractional bits
-    std.debug.assert(t >= 0 and t <= 1);
-    const t_q8: u32 = @trunc(t * one_q8);
-    const rb1: u32 = (color1 & RBmask) >> 8;
-    const rb2 = (color2 & RBmask) >> 8;
-    const ga1 = (color1 & GAmask);
-    const ga2 = (color2 & GAmask);
-
-    const rb = ((rb1 * (one_q8 - t_q8)) + (rb2 * t_q8)) & RBmask;
-    const ga = (((ga1 * (one_q8 - t_q8)) + (ga2 * t_q8)) >> 8) & GAmask;
-    return rb | ga;
 }
 
 pub fn quad(pos: Vec2, size: Vec2, color: u32) void {
     requireTriangles(4, 6);
     addQuadIndices();
-    pushTransformedVertex2D(pos, Vec2{ .x = 0, .y = 0 }, color);
-    pushTransformedVertex2D(.{ .x = pos.x + size.x, .y = pos.y }, Vec2{ .x = 1, .y = 0 }, color);
-    pushTransformedVertex2D(pos.add(size), Vec2{ .x = 1, .y = 1 }, color);
-    pushTransformedVertex2D(.{ .x = pos.x, .y = pos.y + size.y }, Vec2{ .x = 0, .y = 1 }, color);
+    pushTransformedVertex2D(pos, color);
+    pushTransformedVertex2D(.{ .x = pos.x + size.x, .y = pos.y }, color);
+    pushTransformedVertex2D(pos.add(size), color);
+    pushTransformedVertex2D(.{ .x = pos.x, .y = pos.y + size.y }, color);
 }
 
 pub fn quadColors(pos: Vec2, size: Vec2, colors: [4]u32) void {
     requireTriangles(4, 6);
     addQuadIndices();
-    pushTransformedVertex2D(pos, Vec2{ .x = 0, .y = 0 }, colors[0]);
-    pushTransformedVertex2D(.{ .x = pos.x + size.x, .y = pos.y }, Vec2{ .x = 1, .y = 0 }, colors[1]);
-    pushTransformedVertex2D(pos.add(size), Vec2{ .x = 1, .y = 1 }, colors[2]);
-    pushTransformedVertex2D(.{ .x = pos.x, .y = pos.y + size.y }, Vec2{ .x = 0, .y = 1 }, colors[3]);
+    pushTransformedVertex2D(pos, colors[0]);
+    pushTransformedVertex2D(.{ .x = pos.x + size.x, .y = pos.y }, colors[1]);
+    pushTransformedVertex2D(pos.add(size), colors[2]);
+    pushTransformedVertex2D(.{ .x = pos.x, .y = pos.y + size.y }, colors[3]);
 }
 
 // fill circle, generate geometry from center (uneffective, for radial gradient)
@@ -199,7 +138,7 @@ pub fn fillCircleEx(center: Vec2, radius: Vec2, segments: u32, outer_color: u32,
         pushTransformedVertex2D(Vec2.init(
             center.x + radius.x * cos(a),
             center.y + radius.y * sin(a),
-        ), Vec2.one(), outer_color);
+        ), outer_color);
     }
 }
 
@@ -220,7 +159,7 @@ pub fn fillCircle(center: Vec2, radius: Vec2, segments: u32, color: u32) void {
         pushTransformedVertex2D(Vec2.init(
             center.x + radius.x * cos(a),
             center.y + radius.y * sin(a),
-        ), Vec2.one(), color);
+        ), color);
     }
 }
 
@@ -256,8 +195,8 @@ pub fn fillRing(center: Vec2, r0: f32, r1: f32, color: u32) void {
     for (0..n) |i| {
         const a = da * @as(f32, @floatFromInt(i));
         const unit = Vec2.initDir(a);
-        pushTransformedVertex2D(center.add(unit.scale(r0)), Vec2.one(), color);
-        pushTransformedVertex2D(center.add(unit.scale(r1)), Vec2.one(), color);
+        pushTransformedVertex2D(center.add(unit.scale(r0)), color);
+        pushTransformedVertex2D(center.add(unit.scale(r1)), color);
     }
 }
 
@@ -266,9 +205,9 @@ pub fn fillTriangle(positions: [3]Vec2, color: u32) void {
     addIndex(0);
     addIndex(1);
     addIndex(2);
-    pushTransformedVertex2D(positions[0], Vec2.zero(), color);
-    pushTransformedVertex2D(positions[1], Vec2.zero(), color);
-    pushTransformedVertex2D(positions[2], Vec2.zero(), color);
+    pushTransformedVertex2D(positions[0], color);
+    pushTransformedVertex2D(positions[1], color);
+    pushTransformedVertex2D(positions[2], color);
 }
 
 pub fn lineQuad(start: Vec2, end: Vec2, color1: u32, color2: u32, width1: f32, width2: f32) void {
@@ -289,46 +228,8 @@ pub fn lineQuad(start: Vec2, end: Vec2, color1: u32, color2: u32, width1: f32, w
     const m2 = color2;
     //const color_t co = canvas.color[0].offset;
 
-    pushTransformedVertex2D(Vec2.init(start.x + t2sina1, start.y - t2cosa1), Vec2.init(0, 0), m1);
-    pushTransformedVertex2D(Vec2.init(end.x + t2sina2, end.y - t2cosa2), Vec2.init(1, 0), m2);
-    pushTransformedVertex2D(Vec2.init(end.x - t2sina2, end.y + t2cosa2), Vec2.init(1, 1), m2);
-    pushTransformedVertex2D(Vec2.init(start.x - t2sina1, start.y + t2cosa1), Vec2.init(0, 1), m1);
-}
-
-// font internals
-
-pub const DrawTextInput = extern struct {
-    text: CRange,
-    buffer: [*]u8,
-};
-
-const DrawTextCallResult = extern struct {
-    w: u32,
-    h: u32,
-};
-
-const DrawTextResult = struct {
-    w: u32,
-    h: u32,
-    pixels: []u8,
-};
-
-pub fn drawText(text: []const u8, buffer: [*]u8) DrawTextResult {
-    var output: DrawTextCallResult = .{
-        .w = 0,
-        .h = 0,
-    };
-    if (js.enabled) {
-        js.drawText(&.{
-            .text = CRange.fromSlice(text),
-            .buffer = buffer,
-        }, &output);
-    }
-    const w = output.w;
-    const h = output.h;
-    return .{
-        .w = w,
-        .h = h,
-        .pixels = buffer[0..(w * h * 4)],
-    };
+    pushTransformedVertex2D(Vec2.init(start.x + t2sina1, start.y - t2cosa1), m1);
+    pushTransformedVertex2D(Vec2.init(end.x + t2sina2, end.y - t2cosa2), m2);
+    pushTransformedVertex2D(Vec2.init(end.x - t2sina2, end.y + t2cosa2), m2);
+    pushTransformedVertex2D(Vec2.init(start.x - t2sina1, start.y + t2cosa1), m1);
 }

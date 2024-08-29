@@ -44,7 +44,7 @@ fn pow2(x: f32) f32 {
 const pi = std.math.pi;
 const tau = std.math.tau;
 
-pub const ZzfxParameters = packed struct {
+pub const ZzfxParameters = struct {
     volume: f32 = 1.0,
     randomness: f32 = 0.05,
     frequency: f32 = 220.0,
