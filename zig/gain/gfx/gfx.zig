@@ -17,10 +17,10 @@ const State = struct {
     color: u32 = undefined,
     buffer: u32 = 0,
     index: u32 = 0,
+    buffer_handle_frame_counter: u32 = 0,
     vertex: u16 = 0,
     vb: [vertices_max]Vertex = undefined,
     ib: [indices_max]u16 = undefined,
-    buffer_handle_frame_counter: u32 = 0,
 };
 
 pub var state: State = State{};
