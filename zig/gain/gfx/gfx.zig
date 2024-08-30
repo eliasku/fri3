@@ -1,6 +1,6 @@
 const Mat2d = @import("../math/Mat2d.zig");
 const Vec2 = @import("../math/Vec2.zig");
-const Vertex = @import("Vertex.zig");
+pub const Vertex = @import("Vertex.zig");
 const Color32 = @import("../math/Color32.zig");
 const js = @import("../js.zig");
 const std = @import("std");
@@ -132,12 +132,11 @@ pub fn fillCircleEx(center: Vec2, radius: Vec2, segments: u32, outer_color: u32,
 
     pushTransformedVertex2D(center, Vec2.zero(), inner_color);
 
-    const da = std.math.tau / @as(f32, @floatFromInt(segments));
     for (0..segments) |i| {
-        const a = da * @as(f32, @floatFromInt(i));
+        const a = @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(segments));
         pushTransformedVertex2D(Vec2.init(
-            center.x + radius.x * cos(a),
-            center.y + radius.y * sin(a),
+            center.x + radius.x * mathf.costau(a),
+            center.y + radius.y * mathf.sintau(a),
         ), outer_color);
     }
 }
@@ -153,12 +152,12 @@ pub fn fillCircle(center: Vec2, radius: Vec2, segments: u32, color: u32) void {
         addIndex(@truncate(i + 2));
     }
 
-    const da = std.math.tau / @as(f32, @floatFromInt(segments));
+    // const da = 1.0;
     for (0..segments) |i| {
-        const a = da * @as(f32, @floatFromInt(i));
+        const a = @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(segments));
         pushTransformedVertex2D(Vec2.init(
-            center.x + radius.x * cos(a),
-            center.y + radius.y * sin(a),
+            center.x + radius.x * mathf.costau(a),
+            center.y + radius.y * mathf.sintau(a),
         ), color);
     }
 }

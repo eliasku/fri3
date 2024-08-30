@@ -564,14 +564,15 @@ fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: u32, body_color: 
     if (is_hero) {
         gfx.knife(x + hero_w, y + (18 << fbits) - hero_y_off, ss);
         gfx.push(dx + x + (hero_w >> 1), dy + y + (4 << fbits) + (hero_y_off >> 1), 0);
-        gain.gfx.fillCircle(Vec2.fromIntegers(-3 << fbits, -3 << fbits), Vec2.fromIntegers(1 << fbits, 1 << fbits), 4, 0xFF000000);
-        gain.gfx.fillCircle(Vec2.fromIntegers(3 << fbits, 3 << fbits), Vec2.fromIntegers(1 << fbits, 1 << fbits), 4, 0xFF000000);
-        gain.gfx.fillCircle(Vec2.fromIntegers(-3 << fbits, 3 << fbits), Vec2.fromIntegers(1 << fbits, 1 << fbits), 4, 0xFF000000);
-        gain.gfx.fillCircle(Vec2.fromIntegers(3 << fbits, -3 << fbits), Vec2.fromIntegers(1 << fbits, 1 << fbits), 4, 0xFF000000);
-
-        gain.gfx.fillCircle(Vec2.fromIntegers(-2 << fbits, 0 << fbits), Vec2.fromIntegers(1 << fbits, 2 << fbits), 6, 0xFF000000);
-        gain.gfx.fillCircle(Vec2.fromIntegers(2 << fbits, 0 << fbits), Vec2.fromIntegers(1 << fbits, 2 << fbits), 6, 0xFF000000);
-        gain.gfx.fillCircle(Vec2.fromIntegers(0, 0), Vec2.fromIntegers(6 << fbits, 7 << fbits), 10, 0xFFFFEEDD);
+        gfx.color(0xFF000000);
+        gfx.circle(-3 << fbits, -3 << fbits, 1 << fbits, 1 << fbits, 4);
+        gfx.circle(3 << fbits, 3 << fbits, 1 << fbits, 1 << fbits, 4);
+        gfx.circle(-3 << fbits, 3 << fbits, 1 << fbits, 1 << fbits, 4);
+        gfx.circle(3 << fbits, -3 << fbits, 1 << fbits, 1 << fbits, 4);
+        gfx.circle(-2 << fbits, 0 << fbits, 1 << fbits, 2 << fbits, 6);
+        gfx.circle(2 << fbits, 0 << fbits, 1 << fbits, 2 << fbits, 6);
+        gfx.color(0xFFFFEEDD);
+        gfx.circle(0, 0, 6 << fbits, 7 << fbits, 10);
         gfx.restore();
     }
 
@@ -660,29 +661,35 @@ pub fn render() void {
     if (gain.pointers.primary()) |p| {
         if (p.is_down) {
             gain.gfx.state.z = 10;
-            gain.gfx.fillCircle(p.pos, Vec2.splat(scale * (24 << fbits)), 64, 0xFF999999);
-            gain.gfx.fillCircle(p.start, Vec2.splat(scale * (60 << fbits)), 64, 0xFF444444);
-            gain.gfx.fillCircle(p.start, Vec2.splat(scale * (64 << fbits)), 64, 0xFF111111);
+            const q = FPVec2.init(@intFromFloat(p.pos.x), @intFromFloat(p.pos.y));
+            const s = FPVec2.init(@intFromFloat(p.start.x), @intFromFloat(p.start.y));
+            const r = fp32.scale(fp32.fromInt(24), scale);
+            const r2 = fp32.scale(fp32.fromInt(60), scale);
+            const r3 = fp32.scale(fp32.fromInt(64), scale);
+            gfx.color(0xFF999999);
+            gfx.circle(q.x, q.y, r, r, 64);
+            gfx.color(0xFF444444);
+            gfx.circle(s.x, s.y, r2, r2, 64);
+            gfx.color(0xFF111111);
+            gfx.circle(s.x, s.y, r3, r3, 64);
         }
     }
 
     gain.gfx.state.z = 4;
 
-    {
-        const cx = hero.x;
-        const cy = hero.y;
-        gain.gfx.state.matrix = gain.gfx.state.matrix.translate(Vec2.fromIntegers(app.w >> 1, app.h >> 1));
-        gain.gfx.state.matrix = gain.gfx.state.matrix.scale(Vec2.splat(scale));
-        gain.gfx.state.matrix = gain.gfx.state.matrix.translate(Vec2.fromIntegers(-cx, -cy));
-    }
+    const camera_x = hero.x;
+    const camera_y = hero.y;
+    gain.gfx.state.matrix = gain.gfx.state.matrix
+        .translate(Vec2.fromIntegers(app.w >> 1, app.h >> 1))
+        .scale(Vec2.splat(scale))
+        .translate(Vec2.fromIntegers(-camera_x, -camera_y));
 
-    // const occ_scale = 1 / scale;
     const occ_scale = 1 / scale;
-    const sc_w = fp32.scale(@intCast(app.w), occ_scale);
-    const sc_h = fp32.scale(@intCast(app.h), occ_scale);
+    const sc_w = fp32.scale(@bitCast(app.w), occ_scale);
+    const sc_h = fp32.scale(@bitCast(app.h), occ_scale);
     const camera_aabb = FPRect.init(
-        hero.x - (sc_w >> 1),
-        hero.y - (sc_h >> 1),
+        camera_x - (sc_w >> 1),
+        camera_y - (sc_h >> 1),
         sc_w,
         sc_h,
     ).expandInt(-32);
@@ -725,9 +732,10 @@ pub fn render() void {
     {
         gain.gfx.state.z = 50000;
         //gfx.state.matrix = Mat2d.identity();
-        gain.gfx.state.matrix = gain.gfx.state.matrix.translate(Vec2.fromIntegers(camera_aabb.cx(), camera_aabb.y));
         const space_x: i32 = @divTrunc(512 << fbits, 14);
-        gain.gfx.state.matrix = gain.gfx.state.matrix.translate(Vec2.fromIntegers((-(512 << fbits) >> 1), 20 << fbits));
+        gain.gfx.state.matrix = gain.gfx.state.matrix
+            .translate(Vec2.fromIntegers(camera_aabb.cx(), camera_aabb.y))
+            .translate(Vec2.fromIntegers((-(512 << fbits) >> 1), 20 << fbits));
         for (0..13) |i| {
             var rc = FPRect.init(0, 0, 0, 0);
 
@@ -739,8 +747,8 @@ pub fn render() void {
             gfx.rect(rc.expandInt(10), 0xFFCCCCCC);
             if (i < kills) {
                 rc = rc.expandInt(8);
-                gain.gfx.lineQuad(Vec2.fromIntegers(rc.x, rc.y), Vec2.fromIntegers(rc.r(), rc.b()), 0xFF992211, 0xFF880000, 4 << fbits, 2 << fbits);
-                gain.gfx.lineQuad(Vec2.fromIntegers(rc.x, rc.b()), Vec2.fromIntegers(rc.r(), rc.y), 0xFF992211, 0xFF880000, 3 << fbits, 4 << fbits);
+                gfx.line(rc.x, rc.y, rc.r(), rc.b(), 0xFF992211, 0xFF880000, 4 << fbits, 2 << fbits);
+                gfx.line(rc.x, rc.b(), rc.r(), rc.y, 0xFF992211, 0xFF880000, 3 << fbits, 4 << fbits);
             }
             gain.gfx.state.matrix = mat;
         }

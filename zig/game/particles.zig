@@ -80,8 +80,8 @@ pub fn add(n: i32, x: i32, y: i32) void {
     const N: usize = @intCast(n);
     for (0..N) |_| {
         if (particles_num < particles_max) {
-            const d = g_rnd.frange(0, 5);
-            const a = g_rnd.frange(0, std.math.tau);
+            const d = 5 * g_rnd.float();
+            const a = g_rnd.float();
             const t = g_rnd.int(10, 20);
             particles[particles_num] = .{
                 .x = x,

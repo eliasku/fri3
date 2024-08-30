@@ -35,3 +35,12 @@ pub fn div(a: fp32, b: fp32) fp32 {
     //return fromFloat(toFloat(a) / toFloat(b));
     return @divTrunc(a << fbits, b);
 }
+
+pub fn div_f(a: fp32, b: f32) fp32 {
+    //return fromFloat(toFloat(a) / toFloat(b));
+    return div(a, fromFloat(b));
+}
+
+pub fn sat_iif(x: fp32, k: fp32, s: f32) i32 {
+    return @intFromFloat(@as(f32, @floatFromInt(x)) + @as(f32, @floatFromInt(k)) * s);
+}
