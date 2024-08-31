@@ -19,8 +19,8 @@ const State = struct {
     index: u32 = 0,
     buffer_handle_frame_counter: u32 = 0,
     vertex: u16 = 0,
-    vb: [vertices_max]Vertex = undefined,
     ib: [indices_max]u16 = undefined,
+    vb: [vertices_max]Vertex = undefined,
 };
 
 pub var state: State = State{};
@@ -33,7 +33,7 @@ pub fn pushTransformedVertex2D(pos: Vec2, color: u32) void {
         state.z,
         Color32.fromARGB(color).abgr(),
     );
-    state.vertex += 1;
+    state.vertex +%= 1;
 }
 
 pub fn addIndex(index: u16) void {
@@ -48,7 +48,7 @@ pub fn writeRawIndex(index: u16) void {
 }
 
 pub fn addQuadIndices() void {
-    for ([6]u16{ 0, 1, 2, 0, 2, 3 }) |index| {
+    for ([6]u8{ 0, 1, 2, 0, 2, 3 }) |index| {
         addIndex(index);
     }
 }
@@ -172,7 +172,7 @@ pub fn fillRing(center: Vec2, r0: f32, r1: f32, color: u32) void {
     }
 
     for (0..(n - 1)) |i| {
-        const j: u16 = @intCast(i << 1);
+        const j = i << 1;
         addIndex(j);
         addIndex(j + 1);
         addIndex(j + 2);
@@ -181,7 +181,7 @@ pub fn fillRing(center: Vec2, r0: f32, r1: f32, color: u32) void {
         addIndex(j + 3);
     }
     {
-        const j: u16 = @intCast((n - 1) << 1);
+        const j = (n - 1) << 1;
         addIndex(j);
         addIndex(j + 1);
         addIndex(0);
