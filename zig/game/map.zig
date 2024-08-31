@@ -9,7 +9,7 @@ pub const size_mask = size - 1;
 pub var map: [1 << (size_bits << 1)]Cell = undefined;
 pub var colors: [1 << (size_bits << 1)]u8 = undefined;
 pub const colormap: [6]u32 = .{
-    0xFF888888,
+    0xFF667788,
     0xFF88BB22,
     0xFF66AA77,
     0xFFAA4444,

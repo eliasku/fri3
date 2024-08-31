@@ -285,6 +285,26 @@ fn updateMobs() void {
     for (0..mobs_num) |i| {
         const mob: *Mob = &mobs[i];
         if (mob.kind != 0) {
+            const hero_aabb = hero_ground_aabb_local.translate(hero.x, hero.y).expandInt(16);
+            if (mob.hit_timer < (hit_timer_max >> 1)) {
+                const mob_aabb = mob_hitbox_local.translate(mob.x, mob.y);
+                if (mob_aabb.overlaps(hero_aabb)) {
+                    mob.*.hp -= g_rnd.int(2, 10);
+                    mob.*.hit_timer = hit_timer_max;
+                    //mob.*.lx = mob.x - aabb.cx();
+                    //mob.*.ly = mob.y - aabb.cy();
+                    sfx.hit();
+                    particles.add(32, mob_aabb.cx(), mob_aabb.cy());
+                    if (mob.hp <= 0) {
+                        mob.*.kind = 0;
+
+                        kills += 1;
+
+                        particles.add(64, mob_aabb.cx(), mob_aabb.cy());
+                    }
+                }
+            }
+
             const danger = hero_visible > 8 and FPVec2.distance2(hero.x, hero.y, mob.x, mob.y) < (100 << fbits);
             if (danger) {
                 mob.*.attention += 1;
@@ -461,28 +481,6 @@ fn updateGame() void {
         }
     }
 
-    for (0..mobs_num) |i| {
-        const mob = &mobs[i];
-        if (mob.kind != 0 and mob.*.hit_timer < (hit_timer_max >> 1)) {
-            const mob_aabb = mob_hitbox_local.translate(mob.x, mob.y);
-            if (mob_aabb.overlaps(aabb)) {
-                mob.*.hp -= g_rnd.int(2, 10);
-                mob.*.hit_timer = hit_timer_max;
-                //mob.*.lx = mob.x - aabb.cx();
-                //mob.*.ly = mob.y - aabb.cy();
-                sfx.hit();
-                particles.add(32, mob_aabb.cx(), mob_aabb.cy());
-                if (mob.*.hp <= 0) {
-                    mob.*.kind = 0;
-
-                    kills += 1;
-
-                    particles.add(64, mob_aabb.cx(), mob_aabb.cy());
-                }
-            }
-        }
-    }
-
     if (map.getPoint(aabb.cx(), aabb.cy()) > 1) {
         if (hero_visible > 0) {
             hero_visible -= 1;
@@ -577,6 +575,14 @@ fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: u32, body_color: 
     }
 
     if (!is_hero) {
+        if (dy >= 0) {
+            gfx.push(x + (hero_w >> 1), y + (14 << fbits) - hero_y_off, 0);
+            //gfx.color(0xFFFFEEDD);
+            gfx.quad(-3 << fbits, -1 << fbits, 1 << fbits, 1 << fbits, 0xFFEE9999);
+            gfx.quad(2 << fbits, -1 << fbits, 1 << fbits, 1 << fbits, 0xFFEE9999);
+            gfx.restore();
+        }
+
         gfx.head(x + (hero_w >> 1), y + (4 << fbits) - (hero_y_off >> 1), dx, dy, body_color, 0x0, 0xFF000000, 0);
 
         gfx.push(x + (hero_w >> 1), y + (20 << fbits) - hero_y_off, ss);
@@ -776,7 +782,7 @@ fn drawMap(camera_rc: FPRect) void {
                 const y: i32 = @intCast((cy << cell_size_bits) + cell_size_half);
                 gfx.depth(x, y + cell_size_half);
                 if (cell == 2) {
-                    gfx.quad(x, y, cell_size, cell_size_half, 0xFF888888);
+                    gfx.quad(x, y, cell_size, cell_size_half, 0xFF666666);
                 } else if (cell == 3) {
                     gfx.quad(x, y, cell_size, cell_size_half, 0xFF338833);
                 } else if (cell == 4) {
