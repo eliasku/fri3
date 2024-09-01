@@ -294,13 +294,20 @@ fn updateMobs() void {
                     //mob.*.lx = mob.x - aabb.cx();
                     //mob.*.ly = mob.y - aabb.cy();
                     sfx.hit();
-                    particles.add(32, mob_aabb.cx(), mob_aabb.cy());
+                    const kx = mob_aabb.cx();
+                    const ky = mob_aabb.cy();
+                    particles.add(32, kx, ky, 20 << fbits);
                     if (mob.hp <= 0) {
+                        //particles.add(64, kx, ky);
+                        particles.addPart(kx, ky, getMobColor(mob.kind), 1, FPRect.init(0, 0, 0, 4 << fbits).expandInt(5));
+                        const limb_rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
+                        particles.addPart(kx - (4 >> fbits), ky, getMobColor(mob.kind), 0, limb_rc);
+                        particles.addPart(kx + (4 >> fbits), ky, getMobColor(mob.kind), 0, limb_rc);
+                        particles.addPart(kx - (4 >> fbits), ky + (10 >> fbits), getMobColor(mob.kind), 0, limb_rc);
+                        particles.addPart(kx + (4 >> fbits), ky + (10 >> fbits), getMobColor(mob.kind), 0, limb_rc);
+
                         mob.*.kind = 0;
-
                         kills += 1;
-
-                        particles.add(64, mob_aabb.cx(), mob_aabb.cy());
                     }
                 }
             }
@@ -393,7 +400,7 @@ fn updateMobs() void {
 
             if (mob.hp < mob_max_hp and g_rnd.next() & 0x7 == 0) {
                 const mob_aabb = mob_hitbox_local.translate(mob.x, mob.y);
-                particles.add(1, mob_aabb.cx(), mob_aabb.cy());
+                particles.add(1, mob_aabb.cx(), mob_aabb.cy(), 20 << fbits);
             }
         }
     }
@@ -558,9 +565,12 @@ fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: u32, body_color: 
     const y = py + hero_aabb_local.y;
     const hero_y_off = getHeroOffY(move_timer);
 
-    const ss = fp32.fromFloat(0.2 * gain.math.sin(@floatFromInt(move_timer >> 2)));
+    const ss = 0.2 * gain.math.sin(@floatFromInt(move_timer >> 2));
     if (is_hero) {
-        gfx.knife(x + hero_w, y + (18 << fbits) - hero_y_off, ss);
+        gfx.push(x + hero_w, y + (18 << fbits) - hero_y_off, ss);
+        gfx.knife();
+        gfx.restore();
+
         gfx.push(dx + x + (hero_w >> 1), dy + y + (4 << fbits) + (hero_y_off >> 1), 0);
         gfx.color(0xFF000000);
         gfx.circle(-3 << fbits, -3 << fbits, 1 << fbits, 1 << fbits, 4);
@@ -583,7 +593,9 @@ fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: u32, body_color: 
             gfx.restore();
         }
 
-        gfx.head(x + (hero_w >> 1), y + (4 << fbits) - (hero_y_off >> 1), dx, dy, body_color, 0x0, 0xFF000000, 0);
+        gfx.push(x + (hero_w >> 1), y + (4 << fbits) - (hero_y_off >> 1), -ss);
+        gfx.head(dx, dy, body_color, 0x0, 0xFF000000);
+        gfx.restore();
 
         gfx.push(x + (hero_w >> 1), y + (20 << fbits) - hero_y_off, ss);
         gfx.trouses(0xFFFF00FF);
@@ -628,24 +640,32 @@ fn drawItem(i: usize) void {
     gfx.quad(x - (6 << fbits), y - (6 << fbits), 12 << fbits, 12 << fbits, 0xFF444444);
 }
 
-fn drawMob(i: usize) void {
-    const mob = mobs[i];
-    var x = mob.x;
-    var y = mob.y;
-    var body_color: u32 = switch (mob.kind) {
+fn getMobColor(kind: i32) u32 {
+    return switch (kind) {
         1 => 0xFFFFBB99,
         2 => 0xFFFFCCCC,
         3 => 0xFFCCCCFF,
         else => 0xFFCCFF99,
     };
+}
+
+fn drawMob(i: usize) void {
+    const mob = mobs[i];
+    var x = mob.x;
+    var y = mob.y;
+    var body_color = getMobColor(mob.kind);
     if (mob.danger_t > 0) {
         x += g_rnd.int(-1, 1) << fbits;
         y += g_rnd.int(-2, 0) << fbits;
-        gfx.scream(x + (8 << fbits), y - (32 << fbits));
+        gfx.push(x + (8 << fbits), y - (32 << fbits), 0);
+        gfx.scream();
+        gfx.restore();
     }
 
     if (mob.attention > 0 and !mob.danger) {
-        gfx.attention(x, y - (32 << fbits));
+        gfx.push(x, y - (32 << fbits), 0);
+        gfx.attention();
+        gfx.restore();
     }
 
     body_color = Color32.lerp8888b(body_color, 0xFFFFFFFF, mob.hit_timer << 4);

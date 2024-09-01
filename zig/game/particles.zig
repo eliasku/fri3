@@ -21,9 +21,30 @@ const Particle = struct {
     size: i32,
 };
 
+const Part = struct {
+    x: i32,
+    y: i32,
+    z: i32,
+    vx: i32,
+    vy: i32,
+    vz: i32,
+    t: i32,
+    max_time: i32,
+    color: u32,
+    size: i32,
+    spr: u32,
+    a: i32,
+    r: i32,
+    rc: FPRect,
+};
+
 const particles_max = 2048;
 var particles: [particles_max]Particle = undefined;
 var particles_num: u32 = 0;
+
+const parts_max = 256;
+var parts: [parts_max]Part = undefined;
+var parts_num: u32 = 0;
 
 pub fn update() void {
     for (0..particles_num) |i| {
@@ -46,8 +67,39 @@ pub fn update() void {
             }
         }
 
-        if (p.z > 0) {
-            p.z = @max(0, p.z + p.vz);
+        if (p.z > 1) {
+            p.z = @max(1, p.z + p.vz);
+            p.vz -= 2;
+            //p.vz = -fp32.mul(p.vz, fp32.fromFloat(0.5));
+        }
+    }
+
+    for (0..parts_num) |i| {
+        const p = &parts[i];
+        if (p.t > 0) {
+            p.*.t -= 1;
+            //p.*.p = p.p.add(p.v);
+            if (p.t & 1 == 0) {
+                add(1, p.x, p.y, p.z);
+            }
+            const f = fp32.div(p.t, p.max_time);
+            p.a = p.a + fp32.mul(p.r, f);
+            const x2 = p.x + fp32.mul(p.vx, f);
+            const y2 = p.y + fp32.mul(p.vy, f);
+            if (map.testPoint(x2, p.y)) {
+                p.vx = -p.vx;
+            } else {
+                p.x = x2;
+            }
+            if (map.testPoint(p.x, y2)) {
+                p.vy = -p.vy;
+            } else {
+                p.y = y2;
+            }
+        }
+
+        if (p.z > 1) {
+            p.z = @max(1, p.z + p.vz);
             p.vz -= 2;
             //p.vz = -fp32.mul(p.vz, fp32.fromFloat(0.5));
         }
@@ -55,6 +107,23 @@ pub fn update() void {
 }
 
 pub fn draw(camera_rc: FPRect) void {
+    for (0..parts_num) |i| {
+        const p = parts[i];
+        const y = p.y - p.z;
+        if (camera_rc.test2(p.x, y)) {
+            //if (camera_rc.x < p.x and camera_rc.y < p.y and p.x < camera_rc.r() and p.y < camera_rc.b()) {
+            gfx.depth(p.x, p.y);
+            gfx.push(p.x, y, fp32.toFloat(p.a));
+            switch (p.spr) {
+                1 => {
+                    gfx.deadHead(p.color);
+                },
+                else => gfx.rect(p.rc, p.color),
+            }
+            gfx.restore();
+        }
+    }
+
     for (0..particles_num) |i| {
         const p = particles[i];
         const y = p.y - p.z;
@@ -74,22 +143,55 @@ pub fn drawShadows(camera_rc: FPRect) void {
             //gfx.rect(FPRect.init(p.x, p.y, 0, 0).expand(p.size, p.size >> 1), 0x77000000);
         }
     }
+
+    for (0..parts_num) |i| {
+        const p = parts[i];
+        if (camera_rc.test2(p.x, p.y)) {
+            gfx.shadow(p.x, p.y, p.size, 0x77000000);
+            //gfx.rect(FPRect.init(p.x, p.y, 0, 0).expand(p.size, p.size >> 1), 0x77000000);
+        }
+    }
 }
 
-pub fn add(n: i32, x: i32, y: i32) void {
+pub fn addPart(x: i32, y: i32, color: u32, spr: u32, rc: FPRect) void {
+    if (parts_num < parts_max) {
+        const d = 10 * g_rnd.float();
+        const a = g_rnd.float();
+        const t = g_rnd.int(20, 40);
+        parts[parts_num] = .{
+            .x = x,
+            .y = y,
+            .z = g_rnd.int(0, 20 << fp32.fbits),
+            .vx = fp32.fromFloat(d * gain.math.costau(a)),
+            .vy = fp32.fromFloat(d * gain.math.sintau(a) / 2),
+            .vz = 1 << fp32.fbits,
+            .color = color,
+            .max_time = t,
+            .t = t,
+            .size = if (spr == 1) (10 << fp32.fbits) else (4 << fp32.fbits),
+            .spr = spr,
+            .a = 0,
+            .r = g_rnd.int(-1 << fp32.fbits, 1 << fp32.fbits),
+            .rc = rc,
+        };
+        parts_num += 1;
+    }
+}
+
+pub fn add(n: i32, x: i32, y: i32, z: i32) void {
     const N: usize = @intCast(n);
     for (0..N) |_| {
         if (particles_num < particles_max) {
-            const d = 5 * g_rnd.float();
+            const d = 8 * g_rnd.float();
             const a = g_rnd.float();
             const t = g_rnd.int(10, 20);
             particles[particles_num] = .{
                 .x = x,
                 .y = y,
-                .z = g_rnd.int(0, 20 << fp32.fbits),
+                .z = z,
                 .vx = fp32.fromFloat(d * gain.math.costau(a)),
                 .vy = fp32.fromFloat(d * gain.math.sintau(a) / 2),
-                .vz = 0,
+                .vz = g_rnd.int(0, 1 << fp32.fbits),
                 .color = Color32.lerp8888b(
                     0xFFCC0000,
                     0xFF990000,
@@ -106,4 +208,5 @@ pub fn add(n: i32, x: i32, y: i32) void {
 
 pub fn reset() void {
     particles_num = 0;
+    parts_num = 0;
 }

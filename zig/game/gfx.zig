@@ -23,48 +23,56 @@ pub fn rect(rc: FPRect, c: u32) void {
 
 pub fn depth(x: i32, y: i32) void {
     _ = x;
-    gfx.state.z = @floatFromInt(y >> fp32.fbits);
+    gfx.state.z = y >> fp32.fbits;
 }
 
-pub fn attention(x: i32, y: i32) void {
+pub fn attention() void {
     color(0xFF000000);
-    circle(x, y, 2 << fbits, 2 << fbits, 8);
+    circle(0, 0, 2 << fbits, 2 << fbits, 8);
     color(0xFFFFFFFF);
-    circle(x, y, 6 << fbits, 2 << fbits, 6);
+    circle(0, 0, 6 << fbits, 2 << fbits, 6);
 }
 
-pub fn scream(x: i32, y: i32) void {
-    line(x + (2 << fp32.fbits), y + (-2 << fp32.fbits), x + (8 << fp32.fbits), y + (-8 << fp32.fbits), 0xFF000000, 0xFF000000, 0, 2 << fp32.fbits);
-    line(x + (2 << fp32.fbits), y + (0 << fp32.fbits), x + (10 << fp32.fbits), y + (-4 << fp32.fbits), 0xFF000000, 0xFF000000, 0, 2 << fp32.fbits);
-    line(x + (0 << fp32.fbits), y + (-2 << fp32.fbits), x + (4 << fp32.fbits), y + (-10 << fp32.fbits), 0xFF000000, 0xFF000000, 0, 2 << fp32.fbits);
+pub fn scream() void {
+    line((2 << fp32.fbits), (-2 << fp32.fbits), (8 << fp32.fbits), (-8 << fp32.fbits), 0xFF000000, 0xFF000000, 0, 2 << fp32.fbits);
+    line((2 << fp32.fbits), (0 << fp32.fbits), (10 << fp32.fbits), (-4 << fp32.fbits), 0xFF000000, 0xFF000000, 0, 2 << fp32.fbits);
+    line((0 << fp32.fbits), (-2 << fp32.fbits), (4 << fp32.fbits), (-10 << fp32.fbits), 0xFF000000, 0xFF000000, 0, 2 << fp32.fbits);
 }
 
-pub fn head(x: i32, y: i32, lx: i32, ly: i32, skin_color: u32, hair: u32, eye_color: u32, angle: i32) void {
+pub fn head(lx: i32, ly: i32, skin_color: u32, hair: u32, eye_color: u32) void {
     const eye = FPRect.fromInt(-1, -2, 2, 4);
     if (ly >= 0) {
-        rect(eye.translate(x + lx - (2 << fbits), y + ly), eye_color);
-        rect(eye.translate(x + lx + (2 << fbits), y + ly), eye_color);
+        rect(eye.translate(lx - (2 << fbits), ly), eye_color);
+        rect(eye.translate(lx + (2 << fbits), ly), eye_color);
     }
-    rect(FPRect.init(x, y, 0, 4 << fbits).expandInt(5), skin_color);
-    // rect(FPRect.init(x, y - (1 << fbits), 0, 4 << fbits).expandInt(5), 0xFF666600);
+    rect(FPRect.init(0, 0, 0, 4 << fbits).expandInt(5), skin_color);
     _ = hair;
-    _ = angle;
 }
 
-pub fn knife(x: i32, y: i32, angle: i32) void {
-    const m = gain.gfx.state.matrix;
-    gfx.state.matrix = gain.gfx.state.matrix.translate(Vec2.fromIntegers(x, y)).rotate(fp32.toFloat(angle));
+pub fn cross(rc: FPRect) void {
+    line(rc.x, rc.y, rc.r(), rc.b(), gfx.state.color, gfx.state.color, 1 << fbits, 1 << fbits);
+    line(rc.x, rc.b(), rc.r(), rc.y, gfx.state.color, gfx.state.color, 1 << fbits, 1 << fbits);
+}
+
+pub fn deadHead(skin_color: u32) void {
+    const eye = FPRect.fromInt(-1, -2, 2, 4);
+    color(0xFF000000);
+    cross(eye.translate(-(2 << fbits), 0));
+    cross(eye.translate((2 << fbits), 0));
+    rect(FPRect.init(0, 0, 0, 4 << fbits).expandInt(5), skin_color);
+}
+
+pub fn knife() void {
     line(0, 0, (2 << fbits), 0, 0xFF888888, 0xFF666666, 2 << fbits, 2 << fbits);
     line((2 << fbits), 0, (10 << fbits), -2 << fbits, 0xFFFFFFFF, 0xFF999999, 2 << fbits, 3 << fbits);
     line((10 << fbits), -2 << fbits, (14 << fbits), -5 << fbits, 0xFF999999, 0xFF999999, 3 << fbits, 2 << fbits);
-    gfx.state.matrix = m;
 }
 
 var prev_matrix: gain.math.Mat2d = undefined;
 
-pub fn push(x: i32, y: i32, angle: i32) void {
+pub fn push(x: i32, y: i32, angle: f32) void {
     prev_matrix = gfx.state.matrix;
-    gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(x, y)).rotate(fp32.toFloat(angle));
+    gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(x, y)).rotate(angle);
 }
 
 pub fn restore() void {
@@ -98,7 +106,7 @@ pub fn vertex(x: i32, y: i32) void {
     gfx.state.vb[gain.gfx.state.vertex] = gfx.Vertex.init(
         xy.x,
         xy.y,
-        gfx.state.z,
+        @floatFromInt(gfx.state.z >> fbits),
         gfx.state.color,
     );
     gfx.state.vertex += 1;

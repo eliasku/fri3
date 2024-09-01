@@ -12,7 +12,7 @@ const vertices_max = 0x10000;
 const indices_max = 0x20000;
 
 const State = struct {
-    z: f32 = undefined,
+    z: i32 = undefined,
     matrix: Mat2d = undefined,
     color: u32 = undefined,
     buffer: u32 = 0,
@@ -30,7 +30,7 @@ pub fn pushTransformedVertex2D(pos: Vec2, color: u32) void {
     state.vb[state.vertex] = Vertex.init(
         xy.x,
         xy.y,
-        state.z,
+        @floatFromInt(state.z),
         Color32.fromARGB(color).abgr(),
     );
     state.vertex +%= 1;
