@@ -289,7 +289,11 @@ fn updateMobs() void {
             if (mob.hit_timer < (hit_timer_max >> 1)) {
                 const mob_aabb = mob_hitbox_local.translate(mob.x, mob.y);
                 if (mob_aabb.overlaps(hero_aabb)) {
-                    mob.*.hp -= g_rnd.int(2, 10);
+                    if (!mob.danger) {
+                        mob.*.hp -= mob_max_hp;
+                    } else {
+                        mob.*.hp -= g_rnd.int(2, 3);
+                    }
                     mob.*.hit_timer = hit_timer_max;
                     //mob.*.lx = mob.x - aabb.cx();
                     //mob.*.ly = mob.y - aabb.cy();
@@ -352,7 +356,7 @@ fn updateMobs() void {
             if (mob.danger_t > 0) {
                 mob.*.danger_t -= 1;
             }
-            if (danger and !mob.danger) {
+            if (danger and (!mob.danger or mob.danger_t > 0)) {
                 mob.*.lx = 0;
                 mob.*.ly = 0;
             } else if (mob.*.target_map_x != 0) {
