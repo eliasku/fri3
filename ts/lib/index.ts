@@ -10,10 +10,12 @@ import { setupInput } from "./base/input";
 import { decodeText, initMemoryObjects } from "./base/mem";
 import { addStatsView, updateStatsText } from "./dev/stats";
 import { createExportMap, importZigFunctions } from "../_bridge";
+import { text } from "./text";
 
 let { sin, cos, pow, atan2 } = Math;
 
 export const importMap = createExportMap({
+  _text: (handle: number, x: number, y: number, ptr: Ptr<u8>, len: usize) => text(handle, x, y, decodeText(ptr, len)),
   _log: (ptr: Ptr<u8>, len: usize) => {
     console.log(decodeText(ptr, len));
   },
@@ -30,6 +32,7 @@ export const run = (instance: WebAssembly.Instance) => {
   if (import.meta.env.DEV) {
     addStatsView();
   }
+  text(0, 100, 100, "HEPPY BORTHDAY");
 
   let zig = importZigFunctions(instance.exports);
   initMemoryObjects(zig._memory);

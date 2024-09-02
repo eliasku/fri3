@@ -15,6 +15,7 @@ export type ExportMap = {
 	_cos: Function,
 	_pow: Function,
 	_atan2: Function,
+	_text: Function,
 };
 
 export const createExportMap = ({
@@ -26,6 +27,7 @@ export const createExportMap = ({
 	_cos,
 	_pow,
 	_atan2,
+	_text,
 }: ExportMap) => ({
     "0": {
 		a: _drawTriangles,
@@ -36,5 +38,6 @@ export const createExportMap = ({
 		f: _cos,
 		g: _pow,
 		h: _atan2,
+		i: _text,
     },
 });

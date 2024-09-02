@@ -561,6 +561,33 @@ pub fn update() void {
     updateGame();
     sfx.update();
     particles.update();
+
+    {
+        const messages: [10][]const u8 = .{
+            "Hello",
+            "Hello 2",
+            "Hello 3",
+            "Hello 4",
+            "Hello 5",
+            "Hello 6",
+            "Hello 7",
+            "Hello 8",
+            "Hello 9",
+            "Hello 10",
+        };
+
+        const scale = getScreenScale();
+        const camera_x = hero.x;
+        const camera_y = hero.y;
+        const m = Mat2d
+            .identity()
+            .translate(Vec2.fromIntegers(app.w >> 1, app.h >> 1))
+            .scale(Vec2.splat(scale))
+            .translate(Vec2.fromIntegers(-camera_x, -camera_y));
+        const xy = Vec2.fromIntegers(hero.x, hero.y - (40 << fbits)).transform(m);
+        const msg = messages[(gain.app.tic >> 4) % 10];
+        gain.js.text(0, @intFromFloat(xy.x), @intFromFloat(xy.y), msg.ptr, msg.len);
+    }
 }
 
 fn invDist(x: i32, y: i32, x1: i32, y1: i32) i32 {

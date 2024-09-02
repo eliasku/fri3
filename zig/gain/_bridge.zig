@@ -40,6 +40,9 @@ pub const Imports = if (enabled) struct {
 	extern "0" fn h(x: f32, y: f32) f32;
 	pub const atan2 = h;
 
+	extern "0" fn i(handle: i32, x: i32, y: i32, msg_ptr: [*]const u8, msg_len: usize) void;
+	pub const text = i;
+
     pub const enabled = true;
 } else struct {
     pub const enabled = false;

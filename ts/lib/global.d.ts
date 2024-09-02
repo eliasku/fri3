@@ -1,5 +1,6 @@
 declare var c: HTMLCanvasElement;
 declare var b: HTMLBodyElement;
+declare var x: HTMLDivElement;
 
 type u8 = number;
 type u16 = number;
