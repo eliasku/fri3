@@ -299,40 +299,11 @@ fn calcMoveVector(dx: i32, dy: i32, speed: i32) FPVec2 {
 }
 
 fn updateMobs() void {
+    const hero_aabb = hero_ground_aabb_local.translate(hero.x, hero.y).expandInt(16);
+
     for (0..mobs_num) |i| {
         const mob: *Mob = &mobs[i];
         if (mob.kind != 0) {
-            const hero_aabb = hero_ground_aabb_local.translate(hero.x, hero.y).expandInt(16);
-            if (mob.hit_timer < (hit_timer_max >> 1) and hero_knife) {
-                const mob_aabb = mob_hitbox_local.translate(mob.x, mob.y);
-                if (mob_aabb.overlaps(hero_aabb)) {
-                    if (!mob.danger) {
-                        mob.*.hp -= mob_max_hp;
-                    } else {
-                        mob.*.hp -= g_rnd.int(2, 3);
-                    }
-                    mob.*.hit_timer = hit_timer_max;
-                    //mob.*.lx = mob.x - aabb.cx();
-                    //mob.*.ly = mob.y - aabb.cy();
-                    sfx.hit();
-                    const kx = mob_aabb.cx();
-                    const ky = mob_aabb.cy();
-                    particles.add(32, kx, ky, 20 << fbits);
-                    if (mob.hp <= 0) {
-                        //particles.add(64, kx, ky);
-                        particles.addPart(kx, ky, getMobColor(mob.kind), 1, FPRect.init(0, 0, 0, 4 << fbits).expandInt(5));
-                        const limb_rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
-                        particles.addPart(kx - (4 >> fbits), ky, getMobColor(mob.kind), 0, limb_rc);
-                        particles.addPart(kx + (4 >> fbits), ky, getMobColor(mob.kind), 0, limb_rc);
-                        particles.addPart(kx - (4 >> fbits), ky + (10 >> fbits), getMobColor(mob.kind), 0, limb_rc);
-                        particles.addPart(kx + (4 >> fbits), ky + (10 >> fbits), getMobColor(mob.kind), 0, limb_rc);
-
-                        mob.*.kind = 0;
-                        clearMobText(i);
-                        kills += 1;
-                    }
-                }
-            }
             const hero_is_danger = hero_visible > 8 and hero_knife and hero_mask;
             const dist_to_hero = fp32.dist(hero.x, hero.y, mob.x, mob.y);
             const danger = hero_is_danger and dist_to_hero < (100 << fbits);
@@ -429,26 +400,58 @@ fn updateMobs() void {
                 const mob_aabb = mob_hitbox_local.translate(mob.x, mob.y);
                 particles.add(1, mob_aabb.cx(), mob_aabb.cy(), 20 << fbits);
             }
+            {
+                const phrases: [5][]const u8 = .{
+                    "aaaaa",
+                    "hey!",
+                    "run!",
+                    "oh my god",
+                    "run away!",
+                };
 
-            const phrases: [5][]const u8 = .{
-                "aaaaa",
-                "hey!",
-                "run!",
-                "oh my god",
-                "run away!",
-            };
-
-            if (mob.text_t > 0) {
-                mob.*.text_t -= 1;
-                if (mob.*.text_t == 0) {
-                    clearMobText(i);
+                if (mob.text_t > 0) {
+                    mob.*.text_t -= 1;
+                    if (mob.*.text_t == 0) {
+                        clearMobText(i);
+                    } else {
+                        setText(@bitCast(i + 3), phrases[mob.text_i], FPVec2.init(mob.x, mob.y - (48 << fbits)), 0xFFFFFF, 2);
+                    }
                 } else {
-                    setText(@bitCast(i + 3), phrases[mob.text_i], FPVec2.init(mob.x, mob.y - (48 << fbits)), 0xFFFFFF, 2);
+                    if (mob.danger and g_rnd.next() & 31 == 31) {
+                        selectMobText(i, g_rnd.next() % phrases.len);
+                        // pick text index
+                    }
                 }
-            } else {
-                if (mob.danger and g_rnd.next() & 31 == 31) {
-                    selectMobText(i, g_rnd.next() % phrases.len);
-                    // pick text index
+            }
+
+            if (mob.hit_timer < (hit_timer_max >> 1) and hero_knife) {
+                const mob_aabb = mob_hitbox_local.translate(mob.x, mob.y);
+                if (mob_aabb.overlaps(hero_aabb)) {
+                    if (!mob.danger) {
+                        mob.*.hp -= mob_max_hp;
+                    } else {
+                        mob.*.hp -= g_rnd.int(2, 3);
+                    }
+                    mob.*.hit_timer = hit_timer_max;
+                    //mob.*.lx = mob.x - aabb.cx();
+                    //mob.*.ly = mob.y - aabb.cy();
+                    sfx.hit();
+                    const kx = mob_aabb.cx();
+                    const ky = mob_aabb.cy();
+                    particles.add(32, kx, ky, 20 << fbits);
+                    if (mob.hp <= 0) {
+                        //particles.add(64, kx, ky);
+                        particles.addPart(kx, ky, getMobColor(mob.kind), 1, FPRect.init(0, 0, 0, 4 << fbits).expandInt(5));
+                        const limb_rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
+                        particles.addPart(kx - (4 >> fbits), ky, getMobColor(mob.kind), 0, limb_rc);
+                        particles.addPart(kx + (4 >> fbits), ky, getMobColor(mob.kind), 0, limb_rc);
+                        particles.addPart(kx - (4 >> fbits), ky + (10 >> fbits), getMobColor(mob.kind), 0, limb_rc);
+                        particles.addPart(kx + (4 >> fbits), ky + (10 >> fbits), getMobColor(mob.kind), 0, limb_rc);
+
+                        mob.*.kind = 0;
+                        clearMobText(i);
+                        kills += 1;
+                    }
                 }
             }
         }
