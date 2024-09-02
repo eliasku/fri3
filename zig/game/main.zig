@@ -104,6 +104,8 @@ const Mob = struct {
     danger: bool,
     attention: u32,
     male: bool,
+    text_t: i32,
+    text_i: u32,
 };
 
 fn placeMob(x: i32, y: i32, kind: i32, male: bool) void {
@@ -123,6 +125,8 @@ fn placeMob(x: i32, y: i32, kind: i32, male: bool) void {
         .danger = false,
         .attention = 0,
         .male = male,
+        .text_t = 0,
+        .text_i = 0,
     };
     mobs_num += 1;
 }
@@ -324,6 +328,7 @@ fn updateMobs() void {
                         particles.addPart(kx + (4 >> fbits), ky + (10 >> fbits), getMobColor(mob.kind), 0, limb_rc);
 
                         mob.*.kind = 0;
+                        clearMobText(i);
                         kills += 1;
                     }
                 }
@@ -424,8 +429,39 @@ fn updateMobs() void {
                 const mob_aabb = mob_hitbox_local.translate(mob.x, mob.y);
                 particles.add(1, mob_aabb.cx(), mob_aabb.cy(), 20 << fbits);
             }
+
+            const phrases: [5][]const u8 = .{
+                "aaaaa",
+                "hey!",
+                "run!",
+                "oh my god",
+                "run away!",
+            };
+
+            if (mob.text_t > 0) {
+                mob.*.text_t -= 1;
+                if (mob.*.text_t == 0) {
+                    clearMobText(i);
+                } else {
+                    setText(@bitCast(i + 3), phrases[mob.text_i], FPVec2.init(mob.x, mob.y - (48 << fbits)), 0xFFFFFF, 2);
+                }
+            } else {
+                if (mob.danger and g_rnd.next() & 31 == 31) {
+                    selectMobText(i, g_rnd.next() % phrases.len);
+                    // pick text index
+                }
+            }
         }
     }
+}
+
+fn selectMobText(i: u32, phrase: u32) void {
+    mobs[i].text_i = phrase;
+    mobs[i].text_t = 32;
+}
+
+fn clearMobText(i: u32) void {
+    unsetText(@bitCast(i + 3));
 }
 
 fn updateGame() void {
