@@ -15,7 +15,7 @@ import { text } from "./text";
 let { sin, cos, pow, atan2 } = Math;
 
 export const importMap = createExportMap({
-  _text: (handle: number, x: number, y: number, ptr: Ptr<u8>, len: usize) => text(handle, x, y, decodeText(ptr, len)),
+  _text: (handle: i32, x: i32, y: i32, color: u32, size: f32, ptr: Ptr<u8>, len: usize) => text(handle, x, y, color, size, decodeText(ptr, len)),
   _log: (ptr: Ptr<u8>, len: usize) => {
     console.log(decodeText(ptr, len));
   },
@@ -32,7 +32,6 @@ export const run = (instance: WebAssembly.Instance) => {
   if (import.meta.env.DEV) {
     addStatsView();
   }
-  text(0, 100, 100, "HEPPY BORTHDAY");
 
   let zig = importZigFunctions(instance.exports);
   initMemoryObjects(zig._memory);

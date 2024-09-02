@@ -154,7 +154,9 @@ pub fn manhattanDistanceTo(self: Self, target: Self) f32 {
 }
 
 pub fn normalize(self: Self) Self {
-    return self.scale(1 / self.length());
+    var len = self.length();
+    if (len > 0) len = 1 / len;
+    return self.scale(len);
 }
 
 pub fn ofLength(self: Self, vector_length: f32) Self {

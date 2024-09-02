@@ -72,6 +72,20 @@ pub fn knife() void {
     line((10 << fbits), -2 << fbits, (14 << fbits), -5 << fbits, 3 << fbits, 2 << fbits);
 }
 
+pub fn hockeyMask(co: u32) void {
+    color(0xFF000000);
+    circle(-3 << fbits, -3 << fbits, 1 << fbits, 1 << fbits, 4);
+    circle(3 << fbits, 3 << fbits, 1 << fbits, 1 << fbits, 4);
+    circle(-3 << fbits, 3 << fbits, 1 << fbits, 1 << fbits, 4);
+    circle(3 << fbits, -3 << fbits, 1 << fbits, 1 << fbits, 4);
+    circle((-2 << fbits), 0, 1 << fbits, 1 << fbits, 4);
+    circle((2 << fbits), 0, 1 << fbits, 1 << fbits, 4);
+    circle(0, (-2 << fbits), 1 << fbits, 1 << fbits, 4);
+    circle(0, (2 << fbits), 1 << fbits, 1 << fbits, 4);
+    color(co);
+    circle(0, 0, 6 << fbits, 7 << fbits, 10);
+}
+
 var prev_matrix: gain.math.Mat2d = undefined;
 
 pub fn push(x: i32, y: i32, angle_tau: f32) void {

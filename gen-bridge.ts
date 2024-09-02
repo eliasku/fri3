@@ -32,7 +32,7 @@ const imports: Record<string, any> = {
     sig: "(x: f32, y: f32) f32",
   },
   text: {
-    sig: "(handle: i32, x: i32, y: i32, msg_ptr: [*]const u8, msg_len: usize) void",
+    sig: "(handle: i32, x: i32, y: i32, color: u32, size: i32, msg_ptr: [*]const u8, msg_len: usize) void",
   },
 };
 

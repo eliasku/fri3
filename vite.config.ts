@@ -35,7 +35,7 @@ const createProdConfig = (): ConfigEnv => {
   };
 
   (js13kConfig as any).base = "";
-  (js13kConfig as any).server = { port: 8080, open: true };
+//  (js13kConfig as any).server = { port: 8080, open: true };
 
   (js13kConfig as any).plugins.push(
     glsl({
@@ -80,7 +80,7 @@ export default defineConfig((env: ConfigEnv): UserConfig => {
   if(env.command == "serve") {
     return {
       base: "",
-      server: { port: 8080, open: true },
+     // server: { port: 8080, open: true },
       plugins: [
         glsl(),
         zig(),
