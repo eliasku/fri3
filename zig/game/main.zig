@@ -11,6 +11,7 @@ const FPVec2 = @import("FPVec2.zig");
 const sfx = @import("sfx.zig");
 const map = @import("map.zig");
 const particles = @import("particles.zig");
+const colors = @import("colors.zig");
 
 var g_rnd: gain.math.Rnd = .{ .seed = 0 };
 
@@ -272,13 +273,18 @@ fn setMobRandomMovement(mob: *Mob) void {
     }
 }
 
-fn mobRunAwayBeh(mob: *Mob, speed: i32) void {
-    var dx: i32 = mob.x - hero.x;
-    var dy: i32 = mob.y - hero.y;
-    dx = speed * @max(@min(dx, 1), -1);
-    dy = speed * @max(@min(dy, 1), -1);
-    mob.*.lx = dx;
-    mob.*.ly = dy;
+fn mobRunAwayBeh(mob: *Mob, x: i32, y: i32, speed: i32) void {
+    const v = calcMoveVector(mob.x - x, mob.y - y, speed);
+    mob.*.lx = v.x;
+    mob.*.ly = v.y;
+}
+
+fn calcMoveVector(dx: i32, dy: i32, speed: i32) FPVec2 {
+    const v = Vec2.fromIntegers(dx, dy).normalize().scale(@floatFromInt(speed));
+    return FPVec2.init(
+        @intFromFloat(v.x),
+        @intFromFloat(v.y),
+    );
 }
 
 fn updateMobs() void {
@@ -315,8 +321,8 @@ fn updateMobs() void {
                     }
                 }
             }
-
-            const danger = hero_visible > 8 and FPVec2.distance2(hero.x, hero.y, mob.x, mob.y) < (100 << fbits);
+            const dist_to_hero = fp32.dist(hero.x, hero.y, mob.x, mob.y);
+            const danger = hero_visible > 8 and dist_to_hero < (100 << fbits);
             if (danger) {
                 mob.*.attention += 1;
                 if (mob.attention > 32 and !mob.danger) {
@@ -376,9 +382,13 @@ fn updateMobs() void {
                 }
             } else {
                 if (danger) {
-                    mobRunAwayBeh(mob, speed);
+                    mobRunAwayBeh(mob, hero.x, hero.y, speed);
                 }
                 mob.*.ai_timer -= 1;
+            }
+            // block move to hidden hero
+            if (!danger and dist_to_hero < (64 << fbits)) {
+                mobRunAwayBeh(mob, hero.x, hero.y, speed);
             }
             if (mob.*.lx != 0 or mob.*.ly != 0) {
                 mob.*.move_timer +%= 2;
@@ -439,7 +449,9 @@ fn updateGame() void {
     }
 
     if (move_dir.length() > 0) {
-        const speed: f32 = if (hero_move_timer > 16) 2 else 1;
+        //1 + (hero_move_timer >> 4);
+        //const speed: f32 = if (hero_move_timer > 16) 2 else 1;
+        const speed: f32 = @floatFromInt(1 + ((hero_move_timer >> 4) & 0x3));
         move_dir = move_dir.normalize().scale(speed * (1 << fbits));
     }
     const dx: i32 = @intFromFloat(move_dir.x);
@@ -525,7 +537,7 @@ fn findClosestPortal(x: i32, y: i32) ?*Portal {
     var min_dist: i32 = 1000000;
     var min_portal: ?*Portal = null;
     for (0..portals_num) |i| {
-        const dist = FPVec2.distance2(x, y, portals[i].rc.x, portals[i].rc.y);
+        const dist = fp32.dist(x, y, portals[i].rc.x, portals[i].rc.y);
         if (dist < min_dist) {
             min_dist = dist;
             min_portal = &portals[i];
@@ -564,12 +576,12 @@ fn getHeroOffY(move_timer: u32) i32 {
     return @intCast((((move_timer & 31) + 7) >> 4) << fbits);
 }
 
-fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: u32, body_color: u32, is_hero: bool) void {
+fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: u32, body_color: u32, cloth_color: u32, is_hero: bool) void {
     const x = px + hero_aabb_local.x;
     const y = py + hero_aabb_local.y;
     const hero_y_off = getHeroOffY(move_timer);
 
-    const ss = 0.2 * gain.math.sin(@floatFromInt(move_timer >> 2));
+    const ss = gain.math.sintau(fp32.toFloat(@bitCast(move_timer >> 1))) / 40.0;
     if (is_hero) {
         gfx.push(x + hero_w, y + (18 << fbits) - hero_y_off, ss);
         gfx.knife();
@@ -597,12 +609,13 @@ fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: u32, body_color: 
             gfx.restore();
         }
 
-        gfx.push(x + (hero_w >> 1), y + (4 << fbits) - (hero_y_off >> 1), -ss);
-        gfx.head(dx, dy, body_color, 0x0, 0xFF000000);
+        gfx.color(cloth_color);
+        gfx.push(x + (hero_w >> 1), y + (20 << fbits) - hero_y_off, ss);
+        gfx.trouses();
         gfx.restore();
 
-        gfx.push(x + (hero_w >> 1), y + (20 << fbits) - hero_y_off, ss);
-        gfx.trouses(0xFFFF00FF);
+        gfx.push(x + (hero_w >> 1), y + (4 << fbits) - (hero_y_off >> 1), -ss);
+        gfx.head(dx, dy, body_color, 0x0, 0xFF000000);
         gfx.restore();
     }
 
@@ -618,7 +631,7 @@ fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: u32, body_color: 
 fn drawHero() void {
     const body_color = Color32.lerp8888b(0xFF888888, 0xFFFFFFFF, hero_visible << 3);
     gfx.depth(hero.x, hero.y);
-    drawTempMan(hero.x, hero.y, hero_look_x, hero_look_y, hero_move_timer, body_color, true);
+    drawTempMan(hero.x, hero.y, hero_look_x, hero_look_y, hero_move_timer, body_color, 0, true);
 }
 
 fn drawManShadow(x: i32, y: i32, move_timer: u32) void {
@@ -640,16 +653,28 @@ fn drawItem(i: usize) void {
     const x = item.x;
     const y = item.y;
     gfx.depth(x, y);
-    gfx.quad(x - (4 << fbits), y - (4 << fbits), 8 << fbits, 8 << fbits, 0xFF00FF00);
-    gfx.quad(x - (6 << fbits), y - (6 << fbits), 12 << fbits, 12 << fbits, 0xFF444444);
+    gfx.push(x, y - (8 << fbits), fp32.toFloat(@bitCast(gain.app.tic + (i << 4))) / 10);
+    const rc = FPRect.fromInt(0, 0, 0, 0).expandInt(4);
+    gfx.rect(rc, 0xFF00FF00);
+    gfx.rect(rc.expandInt(1), 0xFF444444);
+    gfx.restore();
 }
 
 fn getMobColor(kind: i32) u32 {
     return switch (kind) {
         1 => 0xFFFFBB99,
         2 => 0xFFFFCCCC,
-        3 => 0xFFCCCCFF,
+        3 => 0xFFCCAA66,
         else => 0xFFCCFF99,
+    };
+}
+
+fn getMobTrousesColor(kind: i32) u32 {
+    return switch (kind) {
+        1 => 0xFFFF00FF,
+        2 => 0xFFFFFF00,
+        3 => 0xFFFF0000,
+        else => 0xFF000000,
     };
 }
 
@@ -657,7 +682,9 @@ fn drawMob(i: usize) void {
     const mob = mobs[i];
     var x = mob.x;
     var y = mob.y;
-    var body_color = getMobColor(mob.kind);
+
+    gfx.depth(x, y);
+
     if (mob.danger_t > 0) {
         x += g_rnd.int(-1, 1) << fbits;
         y += g_rnd.int(-2, 0) << fbits;
@@ -672,9 +699,9 @@ fn drawMob(i: usize) void {
         gfx.restore();
     }
 
+    var body_color = getMobColor(mob.kind);
     body_color = Color32.lerp8888b(body_color, 0xFFFFFFFF, mob.hit_timer << 4);
-    gfx.depth(x, y);
-    drawTempMan(x, y, mob.lx, mob.ly, mob.move_timer, body_color, false);
+    drawTempMan(x, y, mob.lx, mob.ly, mob.move_timer, body_color, getMobTrousesColor(mob.kind), false);
 }
 
 fn getScreenScale() f32 {
@@ -690,7 +717,7 @@ pub fn render() void {
 
     if (gain.pointers.primary()) |p| {
         if (p.is_down) {
-            gain.gfx.state.z = 10;
+            gain.gfx.state.z = 10 << fbits;
             const q = FPVec2.init(@intFromFloat(p.pos.x), @intFromFloat(p.pos.y));
             const s = FPVec2.init(@intFromFloat(p.start.x), @intFromFloat(p.start.y));
             const r = fp32.scale(fp32.fromInt(24), scale);
@@ -705,7 +732,7 @@ pub fn render() void {
         }
     }
 
-    gain.gfx.state.z = 4;
+    gain.gfx.state.z = 4 << fbits;
 
     const camera_x = hero.x;
     const camera_y = hero.y;
@@ -747,7 +774,7 @@ pub fn render() void {
     drawBack(camera_aabb);
 
     gain.gfx.setupBlendPass();
-    gain.gfx.state.z = 3;
+    gain.gfx.state.z = 4 << fbits;
 
     drawManShadow(hero.x, hero.y, hero_move_timer);
     particles.drawShadows(camera_aabb);
@@ -759,8 +786,15 @@ pub fn render() void {
         }
     }
 
+    for (0..items_num) |i| {
+        const item = items[i];
+        if (item.kind != 0) {
+            gfx.shadow(item.x, item.y, 8 << fbits, colors.shadow);
+        }
+    }
+
     {
-        gain.gfx.state.z = 50000;
+        gain.gfx.state.z = (1 << 15) << fbits;
         //gfx.state.matrix = Mat2d.identity();
         const space_x: i32 = @divTrunc(512 << fbits, 14);
         gain.gfx.state.matrix = gain.gfx.state.matrix
@@ -776,9 +810,10 @@ pub fn render() void {
             gfx.rect(rc.expandInt(12).translate(1 << fbits, 1 << fbits), 0xFF111111);
             gfx.rect(rc.expandInt(10), 0xFFCCCCCC);
             if (i < kills) {
+                gfx.color(0xFF880000);
                 rc = rc.expandInt(8);
-                gfx.line(rc.x, rc.y, rc.r(), rc.b(), 0xFF992211, 0xFF880000, 4 << fbits, 2 << fbits);
-                gfx.line(rc.x, rc.b(), rc.r(), rc.y, 0xFF992211, 0xFF880000, 3 << fbits, 4 << fbits);
+                gfx.line(rc.x, rc.y, rc.r(), rc.b(), 4 << fbits, 2 << fbits);
+                gfx.line(rc.x, rc.b(), rc.r(), rc.y, 3 << fbits, 4 << fbits);
             }
             gain.gfx.state.matrix = mat;
         }
@@ -797,27 +832,7 @@ fn drawMap(camera_rc: FPRect) void {
     const ccy0: usize = @intCast(@max(0, _cy));
     const ccy1: usize = @intCast(@max(0, _cy + _ch + 2));
 
-    for (ccy0..ccy1) |cy| {
-        const index = cy << map.size_bits;
-        for (ccx0..ccx1) |cx| {
-            const cell = map.map[index + cx];
-            if (cell > 1) {
-                const x: i32 = @intCast((cx << cell_size_bits));
-                const y: i32 = @intCast((cy << cell_size_bits) + cell_size_half);
-                gfx.depth(x, y + cell_size_half);
-                if (cell == 2) {
-                    gfx.quad(x, y, cell_size, cell_size_half, 0xFF666666);
-                } else if (cell == 3) {
-                    gfx.quad(x, y, cell_size, cell_size_half, 0xFF338833);
-                } else if (cell == 4) {
-                    gfx.quad(x, y, cell_size, cell_size_half, 0xFF888833);
-                }
-            }
-        }
-    }
-
-    gain.gfx.state.z = 2;
-    drawPath();
+    //drawPath();
 
     const matrix = gain.gfx.state.matrix;
     for (ccy0..ccy1) |cy| {
@@ -825,6 +840,7 @@ fn drawMap(camera_rc: FPRect) void {
         for (ccx0..ccx1) |cx| {
             const cell = map.map[index + cx];
             if (cell != 0) {
+                gain.gfx.state.z = 2 << fbits;
                 const x: i32 = @intCast((cx << cell_size_bits) + cell_size_half);
                 const y: i32 = @intCast((cy << cell_size_bits) + cell_size_half);
                 // const sz0: i32 = invDist(hero.x, hero.y, x, y);
@@ -835,11 +851,45 @@ fn drawMap(camera_rc: FPRect) void {
                 //     .rotate(std.math.pi * (1 - @as(f32, @floatFromInt(sz0)) / (cell_size_half)));
                 // gfx.quad(Vec2.fromIntegers(-sz, -sz), cell_size_v, 0xFF338866);
 
-                const color = map.colormap[map.colors[map.addr(cx, cy)]];
+                var color = map.colormap[map.colors[map.addr(cx, cy)]];
+                if (cell > 1) {
+                    color = Color32.lerp8888b(color, 0xFF000000, 16);
+                }
                 gfx.rect(FPRect.init(x, y, 0, 0).expand(cell_size_half, cell_size_half), color);
 
                 if (map.map[index + cx - map.size] == 0) {
                     gfx.rect(FPRect.init(x, y - cell_size, 0, 0).expand(cell_size_half, cell_size_half), 0xFF223322);
+                }
+
+                if (cell > 1) {
+                    gfx.depth(x, y + cell_size_half);
+                    if (cell == 2) {
+                        for (0..2) |iy| {
+                            const iiy: i32 = @intCast(iy);
+                            gfx.quad(x - cell_size_half, y + (iiy * cell_size_half >> 1), cell_size, 4 << fbits, 0xFF664433);
+                        }
+                        for (0..5) |ix| {
+                            const iix: i32 = @intCast(ix);
+                            gfx.quad(x - cell_size_half + (iix * cell_size >> 2), y, 2 << fbits, cell_size_half, 0xFF664433);
+                        }
+                    } else if (cell == 3) {
+                        const ss = gain.math.sintau(fp32.toFloat(@bitCast(app.tic +% (cx * cy))) / 8) / 100.0;
+                        gfx.depth(x, y + (cell_size_half >> 1));
+                        gfx.color(0xFF336633);
+                        gfx.push(x, y + (8 << fbits), ss);
+                        gfx.circle(0, -(24 << fbits), 16 << fbits, 16 << fbits, 8);
+                        gfx.quad(-(2 << fbits), -cell_size_half, 4 << fbits, cell_size_half, 0xFF664400);
+                        gfx.restore();
+                    } else if (cell == 4) {
+                        // const ss: f32 = 0.1 * gain.math.sintau(fp32.toFloat(@bitCast(app.tic +% (cx * cy))) / 8);
+                        gfx.push(x, y + (8 << fbits), 0);
+                        gfx.color(0xFF336633);
+                        gfx.circle(0, -4 << fbits, 10 << fbits, 12 << fbits, 8);
+                        gfx.circle(-8 << fbits, 0, 8 << fbits, 8 << fbits, 8);
+                        gfx.circle(8 << fbits, 0, 8 << fbits, 8 << fbits, 8);
+                        //gfx.quad(x - cell_size_half, y, cell_size, cell_size_half, 0xFF003300);
+                        gfx.restore();
+                    }
                 }
             } else {
                 // const x: i32 = @intCast((cx << cell_size_bits) + cell_size_half);
@@ -860,7 +910,7 @@ fn drawPath() void {
 }
 
 fn drawBack(camera_rc: FPRect) void {
-    gain.gfx.state.z = 1;
+    gain.gfx.state.z = 1 << fbits;
     gfx.rect(camera_rc, 0xFF222222);
     gain.gfx.state.z = 0;
     gfx.rect(camera_rc.expandInt(128 << fbits), 0xFF000000);

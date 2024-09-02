@@ -5,6 +5,7 @@ const map = @import("map.zig");
 const FPRect = @import("FPRect.zig");
 const gfx = @import("gfx.zig");
 const Color32 = gain.math.Color32;
+const colors = @import("colors.zig");
 
 var g_rnd: gain.math.Rnd = .{ .seed = 0 };
 
@@ -67,9 +68,9 @@ pub fn update() void {
             }
         }
 
-        if (p.z > 1) {
-            p.z = @max(1, p.z + p.vz);
-            p.vz -= 2;
+        if (p.z > 0) {
+            p.z = @max(0, p.z + p.vz);
+            p.vz -= 4;
             //p.vz = -fp32.mul(p.vz, fp32.fromFloat(0.5));
         }
     }
@@ -79,7 +80,7 @@ pub fn update() void {
         if (p.t > 0) {
             p.*.t -= 1;
             //p.*.p = p.p.add(p.v);
-            if (p.t & 1 == 0) {
+            if (p.t & 1 == 1) {
                 add(1, p.x, p.y, p.z);
             }
             const f = fp32.div(p.t, p.max_time);
@@ -113,7 +114,7 @@ pub fn draw(camera_rc: FPRect) void {
         if (camera_rc.test2(p.x, y)) {
             //if (camera_rc.x < p.x and camera_rc.y < p.y and p.x < camera_rc.r() and p.y < camera_rc.b()) {
             gfx.depth(p.x, p.y);
-            gfx.push(p.x, y, fp32.toFloat(p.a));
+            gfx.push(p.x, y, fp32.toFloat(p.a >> 2));
             switch (p.spr) {
                 1 => {
                     gfx.deadHead(p.color);
@@ -129,7 +130,7 @@ pub fn draw(camera_rc: FPRect) void {
         const y = p.y - p.z;
         if (camera_rc.test2(p.x, y)) {
             //if (camera_rc.x < p.x and camera_rc.y < p.y and p.x < camera_rc.r() and p.y < camera_rc.b()) {
-            gfx.depth(p.x, p.y);
+            gfx.depth(0, if (p.t > 0) p.y else (3 << fp32.fbits));
             gfx.rect(FPRect.init(p.x, y, 0, 0).expand(p.size, p.size >> 1), p.color);
         }
     }
@@ -138,17 +139,15 @@ pub fn draw(camera_rc: FPRect) void {
 pub fn drawShadows(camera_rc: FPRect) void {
     for (0..particles_num) |i| {
         const p = particles[i];
-        if (camera_rc.test2(p.x, p.y)) {
-            gfx.shadow(p.x, p.y, p.size, 0x77000000);
-            //gfx.rect(FPRect.init(p.x, p.y, 0, 0).expand(p.size, p.size >> 1), 0x77000000);
+        if (p.t > 0 and camera_rc.test2(p.x, p.y)) {
+            gfx.shadow(p.x, p.y, p.size, colors.shadow);
         }
     }
 
     for (0..parts_num) |i| {
         const p = parts[i];
         if (camera_rc.test2(p.x, p.y)) {
-            gfx.shadow(p.x, p.y, p.size, 0x77000000);
-            //gfx.rect(FPRect.init(p.x, p.y, 0, 0).expand(p.size, p.size >> 1), 0x77000000);
+            gfx.shadow(p.x, p.y, p.size, colors.shadow);
         }
     }
 }

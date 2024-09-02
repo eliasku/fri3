@@ -68,6 +68,17 @@ pub fn rotate(r: Self, radians: f32) Self {
     };
 }
 
+pub fn rotateUnit(r: Self, tau: f32) Self {
+    const sn = mathf.sintau(tau);
+    const cs = mathf.costau(tau);
+    return .{
+        .x = r.x * cs + r.z * sn,
+        .y = r.w * sn + r.y * cs,
+        .z = -r.x * sn + r.z * cs,
+        .w = r.w * cs - r.y * sn,
+    };
+}
+
 test "rot" {
     const v = Self.identity().rotate(0);
     try std.testing.expect(v.w == 1);

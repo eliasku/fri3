@@ -16,7 +16,7 @@ pub fn next(self: *Self) u32 {
 }
 
 pub fn int(self: *Self, min: i32, max: i32) i32 {
-    return min + @mod(@as(i32, @bitCast(self.next())), max - min);
+    return min + @mod(@as(i32, @bitCast(self.next())), max - min + 1);
 }
 
 pub fn float(self: *Self) f32 {

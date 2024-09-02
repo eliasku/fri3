@@ -39,3 +39,10 @@ pub fn rotate(self: Self, radians: f32) Self {
         .pos = self.pos,
     };
 }
+
+pub fn rotateUnit(self: Self, tau: f32) Self {
+    return .{
+        .rot = self.rot.rotateUnit(tau),
+        .pos = self.pos,
+    };
+}

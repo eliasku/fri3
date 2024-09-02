@@ -38,9 +38,3 @@ pub fn scale(self: Self, f: i32) Self {
         .y = fp32.mul(self.y, f),
     };
 }
-
-pub fn distance2(x: i32, y: i32, x2: i32, y2: i32) i32 {
-    const dx = fp32.toFloat(x - x2);
-    const dy = fp32.toFloat(y - y2);
-    return fp32.fromFloat(@sqrt(dx * dx + dy * dy));
-}

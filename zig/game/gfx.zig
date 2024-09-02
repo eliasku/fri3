@@ -23,7 +23,7 @@ pub fn rect(rc: FPRect, c: u32) void {
 
 pub fn depth(x: i32, y: i32) void {
     _ = x;
-    gfx.state.z = y >> fp32.fbits;
+    gfx.state.z = y;
 }
 
 pub fn attention() void {
@@ -34,9 +34,10 @@ pub fn attention() void {
 }
 
 pub fn scream() void {
-    line((2 << fp32.fbits), (-2 << fp32.fbits), (8 << fp32.fbits), (-8 << fp32.fbits), 0xFF000000, 0xFF000000, 0, 2 << fp32.fbits);
-    line((2 << fp32.fbits), (0 << fp32.fbits), (10 << fp32.fbits), (-4 << fp32.fbits), 0xFF000000, 0xFF000000, 0, 2 << fp32.fbits);
-    line((0 << fp32.fbits), (-2 << fp32.fbits), (4 << fp32.fbits), (-10 << fp32.fbits), 0xFF000000, 0xFF000000, 0, 2 << fp32.fbits);
+    color(0xFF000000);
+    line((2 << fp32.fbits), (-2 << fp32.fbits), (8 << fp32.fbits), (-8 << fp32.fbits), 0, 2 << fp32.fbits);
+    line((2 << fp32.fbits), (0 << fp32.fbits), (10 << fp32.fbits), (-4 << fp32.fbits), 0, 2 << fp32.fbits);
+    line((0 << fp32.fbits), (-2 << fp32.fbits), (4 << fp32.fbits), (-10 << fp32.fbits), 0, 2 << fp32.fbits);
 }
 
 pub fn head(lx: i32, ly: i32, skin_color: u32, hair: u32, eye_color: u32) void {
@@ -50,8 +51,8 @@ pub fn head(lx: i32, ly: i32, skin_color: u32, hair: u32, eye_color: u32) void {
 }
 
 pub fn cross(rc: FPRect) void {
-    line(rc.x, rc.y, rc.r(), rc.b(), gfx.state.color, gfx.state.color, 1 << fbits, 1 << fbits);
-    line(rc.x, rc.b(), rc.r(), rc.y, gfx.state.color, gfx.state.color, 1 << fbits, 1 << fbits);
+    line(rc.x, rc.y, rc.r(), rc.b(), 1 << fbits, 1 << fbits);
+    line(rc.x, rc.b(), rc.r(), rc.y, 1 << fbits, 1 << fbits);
 }
 
 pub fn deadHead(skin_color: u32) void {
@@ -63,30 +64,31 @@ pub fn deadHead(skin_color: u32) void {
 }
 
 pub fn knife() void {
-    line(0, 0, (2 << fbits), 0, 0xFF888888, 0xFF666666, 2 << fbits, 2 << fbits);
-    line((2 << fbits), 0, (10 << fbits), -2 << fbits, 0xFFFFFFFF, 0xFF999999, 2 << fbits, 3 << fbits);
-    line((10 << fbits), -2 << fbits, (14 << fbits), -5 << fbits, 0xFF999999, 0xFF999999, 3 << fbits, 2 << fbits);
+    color(0xFF333333);
+    line(0, 0, (2 << fbits), 0, 2 << fbits, 2 << fbits);
+    color(0xFF999999);
+    line((2 << fbits), 0, (10 << fbits), -2 << fbits, 2 << fbits, 3 << fbits);
+    color(0xFFDDDDDD);
+    line((10 << fbits), -2 << fbits, (14 << fbits), -5 << fbits, 3 << fbits, 2 << fbits);
 }
 
 var prev_matrix: gain.math.Mat2d = undefined;
 
-pub fn push(x: i32, y: i32, angle: f32) void {
+pub fn push(x: i32, y: i32, angle_tau: f32) void {
     prev_matrix = gfx.state.matrix;
-    gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(x, y)).rotate(angle);
+    gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(x, y)).rotateUnit(angle_tau);
 }
 
 pub fn restore() void {
     gfx.state.matrix = prev_matrix;
 }
 
-pub fn trouses(c: u32) void {
+pub fn trouses() void {
     line(
         0,
         -2 << fbits,
         0,
         2 << fbits,
-        c,
-        c,
         11 << fbits,
         0,
     );
@@ -132,7 +134,7 @@ pub fn circle(x: i32, y: i32, rx: i32, ry: i32, segments: u32) void {
     }
 }
 
-pub fn line(x0: i32, y0: i32, x1: i32, y1: i32, color1: u32, color2: u32, w1: i32, w2: i32) void {
+pub fn line(x0: i32, y0: i32, x1: i32, y1: i32, w1: i32, w2: i32) void {
     gfx.requireTriangles(4, 6);
     gfx.addQuadIndices();
 
@@ -147,11 +149,8 @@ pub fn line(x0: i32, y0: i32, x1: i32, y1: i32, color1: u32, color2: u32, w1: i3
     const t2sina2 = fp32.scale(w2, sn);
     const t2cosa2 = fp32.scale(w2, cs);
 
-    color(color1);
     vertex(x0 + t2sina1, y0 - t2cosa1);
-    color(color2);
     vertex(x1 + t2sina2, y1 - t2cosa2);
     vertex(x1 - t2sina2, y1 + t2cosa2);
-    color(color1);
     vertex(x0 - t2sina1, y0 + t2cosa1);
 }
