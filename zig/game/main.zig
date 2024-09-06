@@ -210,6 +210,8 @@ fn initLevel() void {
     const rooms_count: u8 = 6;
     for (0..rooms_count) |room_index| {
         map.current_color = @truncate(room_index);
+        room_x = x;
+        room_y = y;
         const iters = 100;
         var portals_gen: u32 = 1;
         var items_gen: u32 = 10;
@@ -285,12 +287,10 @@ fn initLevel() void {
             addPortal(x, y, nx, ny, room_x, room_y);
             x = nx;
             y = ny;
-            room_x = x;
-            room_y = y;
         }
     }
 
-    addPortal(x, y, hero.x, hero.y, room_x, room_y);
+    addPortal(x, y, hero.x >> cell_size_bits, hero.y >> cell_size_bits, room_x, room_y);
 
     for (&map.map) |*cell| {
         if (cell.* == 1) {
