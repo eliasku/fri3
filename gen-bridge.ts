@@ -16,9 +16,6 @@ const imports: Record<string, any> = {
   setupPass: {
     sig: "(id: u32) void",
   },
-  log: {
-    sig: "(msg_ptr: [*]const u8, msg_len: usize) void",
-  },
   sin: {
     sig: "(x: f32) f32",
   },

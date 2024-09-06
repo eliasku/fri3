@@ -33,6 +33,10 @@ pub fn fear() void {
     playZzfx(.{ 1, 0.05, 600, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 });
 }
 
+pub fn attack() void {
+    playZzfx(.{ 1, 0.05, 300, 0.01, 0.1, 0.05, 0, 1, 0, 0, 0, 0, 0.1, 1, 0, 0, 0.1, 0, 0.05, 0 });
+}
+
 pub fn update() void {
     updateMusic();
 }

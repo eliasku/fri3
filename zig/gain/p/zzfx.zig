@@ -41,7 +41,7 @@ fn pow2(x: f32) f32 {
     return x * x;
 }
 
-const pi = std.math.pi;
+//var pi: f32 = std.math.pi;
 const tau = std.math.tau;
 
 pub const ZzfxParameters = struct {

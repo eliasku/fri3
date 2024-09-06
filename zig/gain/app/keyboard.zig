@@ -16,28 +16,13 @@ pub const Code = .{
     .arrow_down = 0x28,
 };
 pub var down: [0x100]u1 = undefined;
-pub var pressed: [0x100]u1 = undefined;
-pub var released: [0x100]u1 = undefined;
 
-pub fn reset() void {
-    @memset(pressed, 0);
-    @memset(released, 0);
-}
-
+// const pp: [2]u1 = .{ 0, 1 };
 pub fn onEvent(event: u32, code_val: u32) void {
-    // keep range ( mask for 8bit );
-    const key: u8 = @truncate(code_val);
-    switch (event) {
-        // DOWN
-        0 => if (down[key] == 0) {
-            pressed[key] = 1;
-            down[key] = 1;
-        },
-        // UP
-        1 => if (down[key] == 1) {
-            released[key] = 1;
-            down[key] = 0;
-        },
+    //down[code_val & 0xFF] = pp[event];
+    down[code_val & 0xFF] = switch (event) {
+        0 => 1,
+        1 => 0,
         else => unreachable,
-    }
+    };
 }

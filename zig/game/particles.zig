@@ -32,7 +32,6 @@ const Part = struct {
     t: i32,
     max_time: i32,
     color: u32,
-    size: i32,
     spr: u32,
     a: i32,
     r: i32,
@@ -119,6 +118,12 @@ pub fn draw(camera_rc: FPRect) void {
                 1 => {
                     gfx.deadHead(p.color);
                 },
+                2 => {
+                    gfx.hockeyMask(p.color);
+                },
+                3 => {
+                    gfx.knife(0);
+                },
                 else => gfx.rect(p.rc, p.color),
             }
             gfx.restore();
@@ -147,7 +152,7 @@ pub fn drawShadows(camera_rc: FPRect) void {
     for (0..parts_num) |i| {
         const p = parts[i];
         if (camera_rc.test2(p.x, p.y)) {
-            gfx.shadow(p.x, p.y, p.size, colors.shadow);
+            gfx.shadow(p.x, p.y, p.rc.w >> 1, colors.shadow);
         }
     }
 }
@@ -167,7 +172,7 @@ pub fn addPart(x: i32, y: i32, color: u32, spr: u32, rc: FPRect) void {
             .color = color,
             .max_time = t,
             .t = t,
-            .size = if (spr == 1) (10 << fp32.fbits) else (4 << fp32.fbits),
+            //.size = if (spr == 1) (10 << fp32.fbits) else (4 << fp32.fbits),
             .spr = spr,
             .a = 0,
             .r = g_rnd.int(-1 << fp32.fbits, 1 << fp32.fbits),

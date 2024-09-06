@@ -25,23 +25,20 @@ pub const Imports = if (enabled) struct {
 	extern "0" fn c(id: u32) void;
 	pub const setupPass = c;
 
-	extern "0" fn d(msg_ptr: [*]const u8, msg_len: usize) void;
-	pub const log = d;
+	extern "0" fn d(x: f32) f32;
+	pub const sin = d;
 
 	extern "0" fn e(x: f32) f32;
-	pub const sin = e;
+	pub const cos = e;
 
-	extern "0" fn f(x: f32) f32;
-	pub const cos = f;
+	extern "0" fn f(x: f32, y: f32) f32;
+	pub const pow = f;
 
 	extern "0" fn g(x: f32, y: f32) f32;
-	pub const pow = g;
+	pub const atan2 = g;
 
-	extern "0" fn h(x: f32, y: f32) f32;
-	pub const atan2 = h;
-
-	extern "0" fn i(handle: i32, x: i32, y: i32, color: u32, size: i32, msg_ptr: [*]const u8, msg_len: usize) void;
-	pub const text = i;
+	extern "0" fn h(handle: i32, x: i32, y: i32, color: u32, size: i32, msg_ptr: [*]const u8, msg_len: usize) void;
+	pub const text = h;
 
     pub const enabled = true;
 } else struct {

@@ -16,9 +16,6 @@ let { sin, cos, pow, atan2 } = Math;
 
 export const importMap = createExportMap({
   _text: (handle: i32, x: i32, y: i32, color: u32, size: f32, ptr: Ptr<u8>, len: usize) => text(handle, x, y, color, size, decodeText(ptr, len)),
-  _log: (ptr: Ptr<u8>, len: usize) => {
-    console.log(decodeText(ptr, len));
-  },
   _drawTriangles: drawTriangles,
   _playUserAudioBuffer: playUserAudioBuffer,
   _setupPass: (id: u32): void => (id ? setupBlendPass() : setupOpaquePass()),
@@ -37,24 +34,22 @@ export const run = (instance: WebAssembly.Instance) => {
   initMemoryObjects(zig._memory);
   setupInput(zig._onPointerEvent, zig._onKeyboardEvent);
 
-  let raf = requestAnimationFrame;
   let accum = 0;
   let prev = performance.now();
   const onFrame = (ts: DOMHighResTimeStamp) => {
-    accum += ts - prev;
+    accum += ts > prev ? ts - prev : 0;
     prev = ts;
-    let steps = accum >> 4;
-    accum -= steps << 4;
-    if (steps) {
+    if (accum >> 4) {
       const w = gl.drawingBufferWidth;
       const h = gl.drawingBufferHeight;
       beginFrame(w, h);
-      zig._onFrameRequest(steps, w, h);
+      zig._onFrameRequest(accum >> 4, w, h);
       if (import.meta.env.DEV) {
         updateStatsText(ts);
       }
+      accum -= accum >> 4 << 4;
     }
-    raf(onFrame);
+    requestAnimationFrame(onFrame);
   };
-  raf(onFrame);
+  requestAnimationFrame(onFrame);
 };

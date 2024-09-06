@@ -16,14 +16,18 @@ pub const zzfx = @import("./p/zzfx.zig");
 //pub usingnamespace if (builtin.mode == .ReleaseSmall) struct {
 pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
     @setCold(true);
-    if (js.enabled and !builtin.is_test) {
-        console.log(msg);
-        while (true) {
-            @breakpoint();
-        }
-    } else {
-        std.builtin.default_panic(msg, error_return_trace, ret_addr);
-    }
+    _ = msg;
+    _ = error_return_trace;
+    _ = ret_addr;
+    //if (js.enabled and !builtin.is_test) {
+    //while (true) {
+    @breakpoint();
+    unreachable;
+    //}
+    //}
+    // else {
+    //     std.builtin.default_panic(msg, error_return_trace, ret_addr);
+    // }
 }
 
 //} else struct {};

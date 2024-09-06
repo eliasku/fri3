@@ -38,3 +38,21 @@ pub fn scale(self: Self, f: i32) Self {
         .y = fp32.mul(self.y, f),
     };
 }
+
+pub fn hasLength(self: Self) bool {
+    return (self.x | self.y) != 0;
+}
+
+pub fn rescale(self: Self, to_length: i32) Self {
+    if (self.hasLength()) {
+        const fx: f32 = fp32.toFloat(self.x);
+        const fy: f32 = fp32.toFloat(self.y);
+        const s: f32 = fp32.toFloat(to_length);
+        const m: f32 = s / @sqrt(fx * fx + fy * fy);
+        return Self.init(
+            fp32.fromFloat(fx * m),
+            fp32.fromFloat(fy * m),
+        );
+    }
+    return self;
+}

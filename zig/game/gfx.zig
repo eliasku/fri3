@@ -63,13 +63,13 @@ pub fn deadHead(skin_color: u32) void {
     rect(FPRect.init(0, 0, 0, 4 << fbits).expandInt(5), skin_color);
 }
 
-pub fn knife() void {
+pub fn knife(dist: i32) void {
     color(0xFF333333);
-    line(0, 0, (2 << fbits), 0, 2 << fbits, 2 << fbits);
+    line(dist, 0, dist + (2 << fbits), 0, 2 << fbits, 2 << fbits);
     color(0xFF999999);
-    line((2 << fbits), 0, (10 << fbits), -2 << fbits, 2 << fbits, 3 << fbits);
+    line(dist + (2 << fbits), 0, dist + (10 << fbits), -2 << fbits, 2 << fbits, 3 << fbits);
     color(0xFFDDDDDD);
-    line((10 << fbits), -2 << fbits, (14 << fbits), -5 << fbits, 3 << fbits, 2 << fbits);
+    line(dist + (10 << fbits), -2 << fbits, dist + (14 << fbits), -5 << fbits, 3 << fbits, 2 << fbits);
 }
 
 pub fn hockeyMask(co: u32) void {
@@ -167,4 +167,12 @@ pub fn line(x0: i32, y0: i32, x1: i32, y1: i32, w1: i32, w2: i32) void {
     vertex(x1 + t2sina2, y1 - t2cosa2);
     vertex(x1 - t2sina2, y1 + t2cosa2);
     vertex(x0 - t2sina1, y0 + t2cosa1);
+}
+
+pub fn banner13() void {
+    line(-2 << fbits, -4 << fbits, -2 << fbits, 4 << fbits, 1 << fbits, 1 << fbits);
+    line(0 << fbits, -4 << fbits, 2 << fbits, -4 << fbits, 1 << fbits, 1 << fbits);
+    line(2 << fbits, -4 << fbits, 0 << fbits, 0 << fbits, 1 << fbits, 1 << fbits);
+    line(0 << fbits, 0 << fbits, 2 << fbits, 0 << fbits, 1 << fbits, 1 << fbits);
+    line(2 << fbits, 0 << fbits, 0 << fbits, 4 << fbits, 1 << fbits, 1 << fbits);
 }
