@@ -12,12 +12,13 @@ pub const hero: [10][]const u8 = .{
 };
 
 pub const mob: [15][]const u8 = .{
+    // students fear
     "aaaaa",
     "hey!",
     "run!",
     "oh my god",
     "run away!",
-    // lovely
+    // lovely npc
     "nice to meet you",
     "oh lovely day",
     "❤️",

@@ -35,6 +35,6 @@ Unrestricted
 
 ## 6 sep
 11671
-
 11648 - fixing text bugs and extract camera func
 11684 - text in camera bounds, global camera state?
+11806 - camera shake and kick back effect

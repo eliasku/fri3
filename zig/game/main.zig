@@ -57,6 +57,7 @@ var hero_knife = false;
 var hero_mask = false;
 var hero_hp: i32 = undefined;
 var hero_attack_t: i32 = undefined;
+var hero_forced: ForcedMove = undefined;
 
 const game_over_t_max = 32;
 var game_over_t: u8 = 0;
@@ -93,6 +94,25 @@ fn addPortal(x: i32, y: i32, dx: i32, dy: i32, sx: i32, sy: i32) void {
     }
 }
 
+const ForcedMove = struct {
+    v: FPVec2,
+    t: i32,
+
+    fn zero() ForcedMove {
+        return .{
+            .v = FPVec2.init(0, 0),
+            .t = 0,
+        };
+    }
+
+    fn init(x: i32, y: i32, t: i32) ForcedMove {
+        return .{
+            .v = FPVec2.init(x, y),
+            .t = t,
+        };
+    }
+};
+
 const mob_max_hp = 8;
 const hit_timer_max = 15;
 const Mob = struct {
@@ -102,6 +122,7 @@ const Mob = struct {
     move_timer: i32,
     lx: i32,
     ly: i32,
+    forced: ForcedMove,
     ai_timer: i32,
     hp: i32,
     hit_timer: u32,
@@ -126,6 +147,7 @@ fn placeMob(x: i32, y: i32, kind: i32, male: bool, student: bool) void {
             .move_timer = 0,
             .lx = 0,
             .ly = 0,
+            .forced = ForcedMove.zero(),
             .ai_timer = 0,
             .hp = mob_max_hp,
             .hit_timer = 0,
@@ -183,6 +205,14 @@ fn placeItem(x: i32, y: i32, kind: u8) void {
     }
 }
 
+fn setMapPlus(x: i32, y: i32, kind: map.Cell) void {
+    map.set(x, y, kind);
+    map.set(x - 1, y, kind);
+    map.set(x + 1, y, kind);
+    map.set(x, y - 1, kind);
+    map.set(x, y + 1, kind);
+}
+
 fn initLevel() void {
     var rnd = gain.math.Rnd{ .seed = 3 + (level << 5) };
 
@@ -205,6 +235,7 @@ fn initLevel() void {
     hero_knife = false;
     hero_mask = false;
     hero_attack_t = 0;
+    hero_forced = ForcedMove.zero();
 
     var gender_i: u32 = 0;
     var mob_kind_i: i32 = 0;
@@ -243,12 +274,7 @@ fn initLevel() void {
                 else => unreachable,
             }
 
-            map.set(x, y, 1);
-            map.set(x - 1, y, 1);
-            map.set(x + 1, y, 1);
-            map.set(x, y - 1, 1);
-            map.set(x, y + 1, 1);
-
+            setMapPlus(x, y, 1);
             act_timer -= 1;
             if (act_timer == 0) {
                 act_timer = 1 + (rnd.next() & 3);
@@ -375,6 +401,7 @@ fn updateMobs() void {
                     setMobRandomMovement(mob);
                 }
             }
+
             const speed: i32 = @as(i32, if (mob.danger) 2 else 1) << fbits;
             if (mob.danger_t > 0) {
                 mob.*.danger_t -= 1;
@@ -411,19 +438,24 @@ fn updateMobs() void {
             if (!danger and dist_to_hero < (64 << fbits) and hero_hp != 0) {
                 mobRunAwayBeh(mob, hero.x, hero.y, speed);
             }
-            if (mob.*.lx != 0 or mob.*.ly != 0) {
+            var move_vector = FPVec2.init(mob.lx, mob.ly);
+            if (mob.forced.t != 0) {
+                move_vector = mob.forced.v;
+                mob.*.forced.t -= 1;
+            }
+            if (move_vector.x != 0 or move_vector.y != 0) {
                 mob.*.move_timer +%= 2;
-                const new_x = mob.x + mob.*.lx;
-                const new_y = mob.y + mob.*.ly;
+                const new_x = mob.x + move_vector.x;
+                const new_y = mob.y + move_vector.y;
                 if (!map.testRect(mob_hitbox_local.translate(new_x, mob.y))) {
                     mob.*.x = new_x;
                 } else {
-                    mob.*.lx = -mob.*.lx;
+                    //mob.*.lx = -mob.*.lx;
                 }
                 if (!map.testRect(mob_hitbox_local.translate(mob.x, new_y))) {
                     mob.*.y = new_y;
                 } else {
-                    mob.*.ly = -mob.*.ly;
+                    //mob.*.ly = -mob.*.ly;
                 }
             } else {
                 mob.*.move_timer = 0;
@@ -466,19 +498,20 @@ fn updateMobs() void {
                 const mob_overlaps_hero = mob_aabb.overlaps(hero_aabb);
                 if (mob_overlaps_hero) {
                     if (mob.hit_timer < (hit_timer_max >> 1) and hero_attack_t > 24) {
-                        if (!mob.danger) {
-                            mob.*.hp -= mob_max_hp;
-                        } else {
-                            mob.*.hp -= g_rnd.int(2, 3);
-                        }
+                        mob.*.hp = @max(0, if (!mob.danger) mob_max_hp else g_rnd.int(2, 3));
                         mob.*.hit_timer = hit_timer_max;
-                        //mob.*.lx = mob.x - aabb.cx();
-                        //mob.*.ly = mob.y - aabb.cy();
+                        mob.forced = .{
+                            .v = FPVec2.init(mob.x - hero.x, mob.y - hero.y).rescale(3 << fbits),
+                            .t = 8,
+                        };
+
                         sfx.hit();
                         const kx = mob_aabb.cx();
                         const ky = mob_aabb.cy();
                         particles.add(32, kx, ky, 20 << fbits);
+                        camera.shakeS();
                         if (mob.hp <= 0) {
+                            camera.shakeM();
                             const c = getMobColor(mob.kind);
                             var rc = FPRect.init(0, 0, 0, 4 << fbits).expandInt(5);
                             particles.addPart(kx, ky, c, 1, rc);
@@ -502,12 +535,16 @@ fn updateMobs() void {
                         // attack sfx;
                         sfx.hit();
                         hero_hp = @max(0, hero_hp - g_rnd.int(1, 3));
-                        //mob.*.hit_timer = hit_timer_max;
+                        hero_forced = .{
+                            .v = FPVec2.init(hero.x - mob.x, hero.y - mob.y).rescale(3 << fbits),
+                            .t = 8,
+                        };
                         const kx = hero_aabb.cx();
                         const ky = hero_aabb.cy();
                         particles.add(32, kx, ky, 20 << fbits);
+                        camera.shakeS();
                         if (hero_hp == 0) {
-                            //particles.add(64, kx, ky);
+                            camera.shakeM();
                             const c = colors.hero_body_color;
                             var rc = FPRect.init(0, 0, 0, 4 << fbits).expandInt(5);
                             particles.addPart(kx, ky, c, 1, rc);
@@ -581,8 +618,12 @@ fn updateHero() void {
     const max_speed: i32 = if (hero_visible > 8) 2 else 1;
     const speed: i32 = @min(max_speed, 1 + (hero_move_timer >> 4)) << fbits;
     const move_dir = getInputVector(speed);
-    const dx: i32 = move_dir.x;
-    const dy: i32 = move_dir.y;
+    var move_v = move_dir;
+    if (hero_forced.t != 0) {
+        move_v = hero_forced.v;
+        hero_forced.t -= 1;
+    }
+
     // 5208
     // var vx: i32 = 0;
     // var vy: i32 = 0;
@@ -595,10 +636,10 @@ fn updateHero() void {
     // const vx: i32 = @as(i32, (keys.down[keys.Code.d] | keys.down[keys.Code.arrow_right])) - @as(i32, (keys.down[keys.Code.a] | keys.down[keys.Code.arrow_left]));
     // const vy: i32 = @as(i32, (keys.down[keys.Code.s] | keys.down[keys.Code.arrow_down])) - @as(i32, (keys.down[keys.Code.w] | keys.down[keys.Code.arrow_up]));
 
-    if (dx != 0 or dy != 0) {
+    if (move_dir.x != 0 or move_dir.y != 0) {
         hero_move_timer +%= 2;
-        hero_look_x = dx;
-        hero_look_y = dy;
+        hero_look_x = move_dir.x;
+        hero_look_y = move_dir.y;
 
         if ((hero_move_timer & 0x1F) == 0) {
             sfx.step(hero_visible);
@@ -607,8 +648,8 @@ fn updateHero() void {
         hero_move_timer = 0;
     }
 
-    const new_x = hero.x + dx;
-    const new_y = hero.y + dy;
+    const new_x = hero.x + move_v.x;
+    const new_y = hero.y + move_v.y;
     if (!map.testRect(hero_ground_aabb_local.translate(new_x, hero.y))) {
         hero.x = new_x;
     }
@@ -622,8 +663,10 @@ fn updateHero() void {
         if (item.kind != 0 and item_aabb.translate(item.x, item.y).overlaps(aabb)) {
             if (i == 0 and !hero_mask) {
                 hero_mask = true;
+                camera.shakeM();
             } else if (i == 1 and !hero_knife) {
                 hero_knife = true;
+                camera.shakeM();
             }
             items[i].kind = 0;
             sfx.collect();
@@ -643,6 +686,7 @@ fn updateHero() void {
         //level_started = false;
         hero.x = portal.dest.x;
         hero.y = portal.dest.y;
+        no_black_screen_t = 0;
         no_black_screen_target = 15;
         sfx.portal();
     }
@@ -965,9 +1009,9 @@ pub fn render() void {
         }
     }
 
-    particles.draw(camera.rc);
-    drawMap(camera.rc);
-    drawBack(camera.rc);
+    particles.draw();
+    drawMap();
+    drawBack();
 
     gain.gfx.setupBlendPass();
 
@@ -1040,11 +1084,11 @@ fn drawHUD() void {
     }
 }
 
-fn drawMap(camera_rc: FPRect) void {
-    const _cx = camera_rc.x >> cell_size_bits;
-    const _cy = camera_rc.y >> cell_size_bits;
-    const _cw = camera_rc.w >> cell_size_bits;
-    const _ch = camera_rc.h >> cell_size_bits;
+fn drawMap() void {
+    const _cx = camera.rc.x >> cell_size_bits;
+    const _cy = camera.rc.y >> cell_size_bits;
+    const _cw = camera.rc.w >> cell_size_bits;
+    const _ch = camera.rc.h >> cell_size_bits;
     const ccx0: usize = @intCast(@max(0, _cx));
     const ccx1: usize = @intCast(@max(0, _cx + _cw + 2));
     const ccy0: usize = @intCast(@max(0, _cy));
@@ -1145,46 +1189,50 @@ fn drawPath() void {
     gfx.rect(rc.translate(map.path_dest_x << cell_size_bits, map.path_dest_y << cell_size_bits), 0xFFFF0000);
 }
 
-fn drawBack(camera_rc: FPRect) void {
-    gain.gfx.state.z = 2 << fbits;
-    const tile_size = 64 << fbits;
-    var cy = camera_rc.y;
-    while (cy < camera_rc.b() + tile_size) {
-        var cx = camera_rc.x;
-        while (cx < camera_rc.r() + tile_size) {
-            const x = (cx >> (6 + fbits)) << (6 + fbits);
-            const y = (cy >> (6 + fbits)) << (6 + fbits);
-            const local_seed = x +% (y << 8);
-            var rnd = gain.math.Rnd{ .seed = @bitCast(local_seed) };
-            var n = rnd.next() & 3;
-            while (n != 0) {
-                const dx = rnd.int(-32 << fbits, 32 << fbits);
-                const dy = rnd.int(-32 << fbits, 32 << fbits);
-                const a = (rnd.float() - 0.5) / 16.0;
-                const t = fp32.toFloat(dx - dy + @as(i32, @bitCast(app.tic))) / 2;
-                const t2 = fp32.toFloat(dx + dy - @as(i32, @bitCast(app.tic))) / 4;
-                const fx = fp32.fromFloat(gain.math.costau(t) * 2);
-                const fy = fp32.fromFloat(gain.math.sintau(t));
-                const size = rnd.int(1 << fbits, 3 << fbits);
-                if (gain.math.sintau(t2) > 0.5) {
-                    gfx.push(x + dx + fx, y + dy + fy, a);
-                    gfx.color(0xFF666666);
-                    gfx.circle(0, 0, size, size, 8);
-                    gfx.color(0xFF000000);
-                    gfx.circle(0, 0, size * 3, size, 6);
-                    gfx.restore();
+fn drawBack() void {
+    if (true) {
+        // 11631
+        // 11457
+        gain.gfx.state.z = 2 << fbits;
+        const tile_size = 64 << fbits;
+        var cy = camera.rc.y;
+        while (cy < camera.rc.b() + tile_size) {
+            var cx = camera.rc.x;
+            while (cx < camera.rc.r() + tile_size) {
+                const x = (cx >> (6 + fbits)) << (6 + fbits);
+                const y = (cy >> (6 + fbits)) << (6 + fbits);
+                const local_seed = x +% (y << 8);
+                var rnd = gain.math.Rnd{ .seed = @bitCast(local_seed) };
+                var n = rnd.next() & 3;
+                while (n != 0) {
+                    const dx = rnd.int(-32 << fbits, 32 << fbits);
+                    const dy = rnd.int(-32 << fbits, 32 << fbits);
+                    const a = (rnd.float() - 0.5) / 16.0;
+                    const t = fp32.toFloat(dx - dy + @as(i32, @bitCast(app.tic))) / 2;
+                    const t2 = fp32.toFloat(dx + dy - @as(i32, @bitCast(app.tic))) / 4;
+                    const fx = fp32.fromFloat(gain.math.costau(t) * 2);
+                    const fy = fp32.fromFloat(gain.math.sintau(t));
+                    const size = rnd.int(1 << fbits, 3 << fbits);
+                    if (gain.math.sintau(t2) > 0.5) {
+                        gfx.push(x + dx + fx, y + dy + fy, a);
+                        gfx.color(0xFF666666);
+                        gfx.circle(0, 0, size, size, 8);
+                        gfx.color(0xFF000000);
+                        gfx.circle(0, 0, size * 3, size, 6);
+                        gfx.restore();
+                    }
+                    n -= 1;
                 }
-                n -= 1;
+                cx += 64 << fbits;
             }
-            cx += 64 << fbits;
+            cy += 64 << fbits;
         }
-        cy += 64 << fbits;
     }
 
     gain.gfx.state.z = 1 << fbits;
-    gfx.rect(camera_rc, 0xFF222222);
+    gfx.rect(camera.rc, 0xFF222222);
     gain.gfx.state.z = 0;
-    gfx.rect(camera_rc.expandInt(128 << fbits), 0xFF000000);
+    gfx.rect(camera.rc.expandInt(128 << fbits), 0xFF000000);
 }
 
 // MENU
@@ -1216,8 +1264,8 @@ fn updateGameState() void {
             map.current_color = 2;
             for (4..16) |cy| {
                 for (4..16) |cx| {
-                    map.set(cx, cy, @intCast(g_rnd.int(1, 4)));
-                    if (cx & 1 == 1 and cy & 1 == 0) {
+                    setMapPlus(@bitCast(cx), @bitCast(cy), @intCast(g_rnd.int(1, 8)));
+                    if (g_rnd.next() & 0x7 == 0) {
                         placeMob(@bitCast(cx), @bitCast(cy), g_rnd.int(1, 3), g_rnd.next() & 1 == 1, true);
                     }
                 }

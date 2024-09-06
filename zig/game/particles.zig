@@ -107,11 +107,11 @@ pub fn update() void {
     }
 }
 
-pub fn draw(camera_rc: FPRect) void {
+pub fn draw() void {
     for (0..parts_num) |i| {
         const p = parts[i];
         const y = p.y - p.z;
-        if (camera_rc.test2(p.x, y)) {
+        if (camera.rc.test2(p.x, y)) {
             //if (camera_rc.x < p.x and camera_rc.y < p.y and p.x < camera_rc.r() and p.y < camera_rc.b()) {
             gfx.depth(p.x, p.y);
             gfx.push(p.x, y, fp32.toFloat(p.a >> 2));
@@ -134,7 +134,7 @@ pub fn draw(camera_rc: FPRect) void {
     for (0..particles_num) |i| {
         const p = particles[i];
         const y = p.y - p.z;
-        if (camera_rc.test2(p.x, y)) {
+        if (camera.rc.test2(p.x, y)) {
             //if (camera_rc.x < p.x and camera_rc.y < p.y and p.x < camera_rc.r() and p.y < camera_rc.b()) {
             gfx.depth(0, if (p.t > 0) p.y else (3 << fp32.fbits));
             gfx.rect(FPRect.init(p.x, y, 0, 0).expand(p.size, p.size >> 1), p.color);
