@@ -1,6 +1,6 @@
 export const getDevicePixelRatio = () => devicePixelRatio;
 
-setInterval((
+const r = (_?:any,
     w: number = b.clientWidth,
     h: number = b.clientHeight,
     s: number = getDevicePixelRatio(),
@@ -9,7 +9,6 @@ setInterval((
     c.height = h * s;
     c.style.width = w + "px";
     c.style.height = h + "px";
-    //c.style.imageRendering = "pixelated";
-}, 200);
-// resize();
-// b.onresize = resize;
+};
+r();
+b.onresize = r;

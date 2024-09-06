@@ -45,28 +45,52 @@ pub fn update() void {
 
 var music_end_time: f32 = 0;
 var music_bar: u32 = 0;
-
+const gen_music_bars = 16 / 4;
+pub var music_menu = false;
 fn updateMusic() void {
     const time: f32 = @as(f32, @floatFromInt(gain.app.tic << 4)) / 1000;
-    const k: f32 = (60.0 / 80.0) / 4.0;
+    const temp: f32 = if (music_menu) 40 else 80;
+    const k: f32 = (60.0 / temp) / 4.0;
     if (time >= music_end_time - k) {
-        generateNextMusicBar(music_end_time, k);
-        music_end_time += 16 * k;
+        generateNextMusicBar(music_end_time, k, time);
+        music_end_time += gen_music_bars * k;
         music_bar += 1;
     }
 }
 
-fn generateNextMusicBar(time: f32, k: f32) void {
+fn generateNextMusicBar(time: f32, k: f32, cur_time: f32) void {
     var t = time;
-    for (0..16) |j| {
-        const i = j & 0x3;
-        if (i == 0 or i == 3) {
-            playZzfxEx(.{ 1, 0, 100, 2e-3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5e-3, 0 }, 1, 0, 0, t);
+    const base: f32 = @floatFromInt((gain.app.tic * music_bar) % 12);
+    for (0..gen_music_bars) |j| {
+        if (t >= cur_time) {
+            const i = j & 0x3;
+
+            if (i == 0 or i == 3) {
+                playZzfxEx(.{ 1, 0, 100, 2e-3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5e-3, 0 }, 1, 0, 0, t);
+            }
+
+            if (!music_menu) {
+                const v: f32 = if (i > 1) 0.2 else 0.1;
+                playZzfxEx(.{ 1, 0, 1e3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.1, 0 }, v, 0, 0, t);
+            }
+
+            const note_volume: f32 = if (music_menu) 0.1 else 0.3;
+            //const note: f32 = @floatFromInt(j);
+            if (j != 3) {
+                const note: f32 = base * 100;
+                playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, note_volume, 0, note, t);
+                // playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, 1, 0, note * 100, t + 1 * k / 4);
+                playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, note_volume / 2, 0, note + 500, t + 2 * k / 4);
+            }
+            if (j == 3) {
+                const note: f32 = (base + 3) * 100;
+                // playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, 1, 0, note * 100, t);
+                // playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, 1, 0, (note + 0.5) * 100, t + 1 * k / 4);
+                playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, note_volume, 0, note, t);
+                playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, note_volume / 2, 0, note + 700, t + 2 * k / 4);
+            }
+
+            t += k;
         }
-
-        const v: f32 = if (i > 1) 0.2 else 0.1;
-        playZzfxEx(.{ 1, 0, 1e3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.1, 0 }, v, 0, 0, t);
-
-        t += k;
     }
 }

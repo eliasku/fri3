@@ -5,9 +5,10 @@ const FPVec2 = @import("FPVec2.zig");
 const Vec2 = gain.math.Vec2;
 const Mat2d = gain.math.Mat2d;
 pub var scale: f32 = undefined;
+pub var ui_scale: f32 = undefined;
 pub var rc: FPRect = undefined;
 pub var position: FPVec2 = undefined;
-const zoom = 1.0;
+pub var zoom: f32 = 1.0;
 pub const screen_size = 512 << fp32.fbits;
 pub var matrix: Mat2d = undefined;
 pub var shake_c: i32 = 0;
@@ -29,7 +30,8 @@ pub fn update(tx: i32, ty: i32) void {
     const app_w: f32 = @floatFromInt(app.w);
     const app_h: f32 = @floatFromInt(app.h);
     const short_side = @min(app_w, app_h);
-    scale = short_side / (screen_size * zoom);
+    ui_scale = short_side / screen_size;
+    scale = ui_scale / zoom;
 
     position.x = tx;
     position.y = ty;

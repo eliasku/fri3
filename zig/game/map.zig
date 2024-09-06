@@ -39,7 +39,7 @@ pub fn set(x: anytype, y: anytype, v: Cell) void {
     @setRuntimeSafety(false);
     const i = addr(x, y);
     map[i] = v;
-    colors[i] = current_color;
+    colors[i] = current_color % 6;
 }
 
 pub fn getPoint(x: i32, y: i32) Cell {
