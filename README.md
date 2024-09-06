@@ -35,3 +35,5 @@ Unrestricted
 
 ## 6 sep
 11671
+
+11648 - fixing text bugs and extract camera func

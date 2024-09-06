@@ -13,6 +13,7 @@ const map = @import("map.zig");
 const particles = @import("particles.zig");
 const colors = @import("colors.zig");
 const texts = @import("texts.zig");
+const camera = @import("camera.zig");
 
 var g_rnd: gain.math.Rnd = .{ .seed = 0 };
 
@@ -479,12 +480,13 @@ fn updateMobs() void {
                         particles.add(32, kx, ky, 20 << fbits);
                         if (mob.hp <= 0) {
                             const c = getMobColor(mob.kind);
-                            particles.addPart(kx, ky, c, 1, FPRect.init(0, 0, 0, 4 << fbits).expandInt(5));
-                            const limb_rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
-                            particles.addPart(kx - (4 >> fbits), ky, c, 0, limb_rc);
-                            particles.addPart(kx + (4 >> fbits), ky, c, 0, limb_rc);
-                            particles.addPart(kx - (4 >> fbits), ky + (10 >> fbits), c, 0, limb_rc);
-                            particles.addPart(kx + (4 >> fbits), ky + (10 >> fbits), c, 0, limb_rc);
+                            var rc = FPRect.init(0, 0, 0, 4 << fbits).expandInt(5);
+                            particles.addPart(kx, ky, c, 1, rc);
+                            rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
+                            particles.addPart(kx - (4 >> fbits), ky, c, 0, rc);
+                            particles.addPart(kx + (4 >> fbits), ky, c, 0, rc);
+                            particles.addPart(kx - (4 >> fbits), ky + (10 >> fbits), c, 0, rc);
+                            particles.addPart(kx + (4 >> fbits), ky + (10 >> fbits), c, 0, rc);
 
                             mob.*.kind = 0;
                             clearMobText(i);
@@ -507,14 +509,15 @@ fn updateMobs() void {
                         if (hero_hp == 0) {
                             //particles.add(64, kx, ky);
                             const c = colors.hero_body_color;
-                            particles.addPart(kx, ky, c, 1, FPRect.init(0, 0, 0, 4 << fbits).expandInt(5));
-                            particles.addPart(kx, ky, c, 2, FPRect.init(0, 0, 0, 4 << fbits).expandInt(5));
-                            particles.addPart(kx, ky, c, 3, FPRect.init(0, 0, 0, 4 << fbits).expandInt(5));
-                            const limb_rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
-                            particles.addPart(kx - (4 >> fbits), ky, c, 0, limb_rc);
-                            particles.addPart(kx + (4 >> fbits), ky, c, 0, limb_rc);
-                            particles.addPart(kx - (4 >> fbits), ky + (10 >> fbits), c, 0, limb_rc);
-                            particles.addPart(kx + (4 >> fbits), ky + (10 >> fbits), c, 0, limb_rc);
+                            var rc = FPRect.init(0, 0, 0, 4 << fbits).expandInt(5);
+                            particles.addPart(kx, ky, c, 1, rc);
+                            particles.addPart(kx, ky, c, 2, rc);
+                            particles.addPart(kx, ky, c, 3, rc);
+                            rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
+                            particles.addPart(kx - (4 >> fbits), ky, c, 0, rc);
+                            particles.addPart(kx + (4 >> fbits), ky, c, 0, rc);
+                            particles.addPart(kx - (4 >> fbits), ky + (10 >> fbits), c, 0, rc);
+                            particles.addPart(kx + (4 >> fbits), ky + (10 >> fbits), c, 0, rc);
 
                             // mob.*.kind = 0;
                             unsetText(0);
@@ -560,7 +563,7 @@ fn getInputVector(speed: i32) FPVec2 {
 
     if (gain.pointers.primary()) |p| {
         if (p.is_down) {
-            const dist = getScreenScale() * (32 << fbits);
+            const dist = camera.scale * (32 << fbits);
             const d = p.pos.sub(p.start);
             if (d.length() > dist) {
                 dx = @intFromFloat(d.x);
@@ -719,7 +722,7 @@ pub fn update() void {
 }
 
 fn setText(handle: i32, text: []const u8, pos: FPVec2, color: u32, size: i32) void {
-    const scale = getScreenScale();
+    const scale = camera.scale;
     const camera_x = hero.x;
     const camera_y = hero.y;
     const m = Mat2d
@@ -916,20 +919,10 @@ fn drawMob(i: usize) void {
     drawTempMan(x, y, mob.lx, mob.ly, mob.move_timer, body_color, head_color, getMobTrousesColor(mob.kind), false, mob.male, mob.is_student);
 }
 
-fn getScreenScale() f32 {
-    const ex_zoom: f32 = 1; //  if (game_state == 1 and hero_hp != 0) 1 else 0.9;
-    // if (hero_hp <= 0) {
-    //     ex_zoom = @floatFromInt(game_over_t);
-    //     ex_zoom = std.math.lerp(0.4, 1, ex_zoom / game_over_t_max);
-    // }
-
-    const short_side = @min(app.w, app.h);
-    return @as(f32, @floatFromInt(short_side)) / (screen_size * camera_zoom * ex_zoom);
-}
-
-fn drawVPad(scale: f32) void {
+fn drawVPad() void {
     if (gain.pointers.primary()) |p| {
         if (p.is_down) {
+            const scale = camera.scale;
             gain.gfx.state.z = 10 << fbits;
             const q = FPVec2.init(@intFromFloat(p.pos.x), @intFromFloat(p.pos.y));
             const s = FPVec2.init(@intFromFloat(p.start.x), @intFromFloat(p.start.y));
@@ -947,28 +940,14 @@ fn drawVPad(scale: f32) void {
 }
 
 pub fn render() void {
+    camera.update(hero.x, hero.y);
+
     gain.gfx.setupOpaquePass();
     gain.gfx.state.matrix = Mat2d.identity();
 
-    const scale = getScreenScale();
-    drawVPad(scale);
+    drawVPad();
 
-    const camera_x = hero.x;
-    const camera_y = hero.y;
-    gain.gfx.state.matrix = gain.gfx.state.matrix
-        .translate(Vec2.fromIntegers(app.w >> 1, app.h >> 1))
-        .scale(Vec2.splat(scale))
-        .translate(Vec2.fromIntegers(-camera_x, -camera_y));
-
-    const occ_scale = 1 / scale;
-    const sc_w = fp32.scale(@bitCast(app.w), occ_scale);
-    const sc_h = fp32.scale(@bitCast(app.h), occ_scale);
-    const camera_aabb = FPRect.init(
-        camera_x - (sc_w >> 1),
-        camera_y - (sc_h >> 1),
-        sc_w,
-        sc_h,
-    ).expandInt(-32);
+    gain.gfx.state.matrix = camera.matrix;
 
     //drawMiniMap();
 
@@ -978,21 +957,21 @@ pub fn render() void {
 
     for (0..items_num) |i| {
         const item = items[i];
-        if (item.kind != 0 and item_aabb.translate(item.x, item.y).overlaps(camera_aabb)) {
+        if (item.kind != 0 and item_aabb.translate(item.x, item.y).overlaps(camera.rc)) {
             drawItem(i);
         }
     }
 
     for (0..mobs_num) |i| {
         const mob = mobs[i];
-        if (mob.kind != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera_aabb)) {
+        if (mob.kind != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
             drawMob(i);
         }
     }
 
-    particles.draw(camera_aabb);
-    drawMap(camera_aabb);
-    drawBack(camera_aabb);
+    particles.draw(camera.rc);
+    drawMap(camera.rc);
+    drawBack(camera.rc);
 
     gain.gfx.setupBlendPass();
 
@@ -1004,7 +983,7 @@ pub fn render() void {
 
     for (0..mobs_num) |i| {
         const mob = mobs[i];
-        if (mob.kind != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera_aabb)) {
+        if (mob.kind != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
             if (mob.attack_t > 8) {
                 gfx.depth(mob.x, mob.y);
                 gfx.color(Color32.lerp8888b(0x00000000, 0xFFFFFFFF, @bitCast(mob.attack_t)));
@@ -1017,7 +996,7 @@ pub fn render() void {
     if (hero_hp != 0) {
         drawManShadow(hero.x, hero.y, hero_move_timer);
     }
-    particles.drawShadows(camera_aabb);
+    particles.drawShadows(camera.rc);
 
     for (0..mobs_num) |i| {
         const mob = mobs[i];
@@ -1034,7 +1013,7 @@ pub fn render() void {
     }
 
     if (game_state == 1) {
-        drawHUD(camera_aabb);
+        drawHUD(camera.rc);
     }
     drawMenu();
 }
@@ -1182,7 +1161,6 @@ fn drawBack(camera_rc: FPRect) void {
             const local_seed = x +% (y << 8);
             var rnd = gain.math.Rnd{ .seed = @bitCast(local_seed) };
             var n = rnd.next() & 3;
-
             while (n != 0) {
                 const dx = rnd.int(-32 << fbits, 32 << fbits);
                 const dy = rnd.int(-32 << fbits, 32 << fbits);
@@ -1194,8 +1172,6 @@ fn drawBack(camera_rc: FPRect) void {
                 const size = rnd.int(1 << fbits, 3 << fbits);
                 if (gain.math.sintau(t2) > 0.5) {
                     gfx.push(x + dx + fx, y + dy + fy, a);
-                    //gfx.attention();
-
                     gfx.color(0xFF666666);
                     gfx.circle(0, 0, size, size, 8);
                     gfx.color(0xFF000000);
@@ -1232,11 +1208,11 @@ fn setGameState(state: u8) void {
 fn updateGameState() void {
     game_state_tics += 1;
     if (game_state == 0) {
-        if (game_state_tics == 1) {
-            setText(100, "FRI3", FPVec2.init(hero.x, hero.y - (128 << fbits)), 0xFF0000, 10);
-            setText(101, "TAP TO START", FPVec2.init(hero.x, hero.y + (64 << fbits)), 0x880000, 4);
-            setText(102, "js13k game by\n\nIlya Kuzmichev\n&\nAlexandra Alhovik", FPVec2.init(hero.x, hero.y + (128 << fbits)), 0xCCCCCC, 2);
+        setText(100, "FRI3", FPVec2.init(hero.x, hero.y - (128 << fbits)), 0xFF0000, 10);
+        setText(101, "TAP TO START", FPVec2.init(hero.x, hero.y + (64 << fbits)), 0x880000, 4);
+        setText(102, "js13k game by\n\nIlya Kuzmichev\n&\nAlexandra Alhovik", FPVec2.init(hero.x, hero.y + (128 << fbits)), 0xCCCCCC, 2);
 
+        if (game_state_tics == 1) {
             no_black_screen_target = 15;
             hero_hp = 1;
             hero_mask = true;

@@ -13,7 +13,7 @@ export const text = (id: i32, x: i32, y: i32, color: u32, size: f32, text: strin
     _el.style.top = `${y * _s}px`;
     _el.style.font = `${size}vmin monospace`;
     _el.style.color = `#${color.toString(16).padStart(6, "0")}`
-    _el.style.textAlign = "center";
+    //_el.style.textAlign = "center";
     _el.style.zIndex = "1" + y;
     _child.innerText = text;
 };
