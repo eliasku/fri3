@@ -6,6 +6,7 @@ const FPRect = @import("FPRect.zig");
 const gfx = @import("gfx.zig");
 const Color32 = gain.math.Color32;
 const colors = @import("colors.zig");
+const camera = @import("camera.zig");
 
 var g_rnd: gain.math.Rnd = .{ .seed = 0 };
 
@@ -141,17 +142,18 @@ pub fn draw(camera_rc: FPRect) void {
     }
 }
 
-pub fn drawShadows(camera_rc: FPRect) void {
+pub fn drawShadows() void {
+    const rc = camera.rc;
     for (0..particles_num) |i| {
         const p = particles[i];
-        if (p.t > 0 and camera_rc.test2(p.x, p.y)) {
+        if (p.t > 0 and rc.test2(p.x, p.y)) {
             gfx.shadow(p.x, p.y, p.size, colors.shadow);
         }
     }
 
     for (0..parts_num) |i| {
         const p = parts[i];
-        if (camera_rc.test2(p.x, p.y)) {
+        if (rc.test2(p.x, p.y)) {
             gfx.shadow(p.x, p.y, p.rc.w >> 1, colors.shadow);
         }
     }

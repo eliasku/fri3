@@ -37,3 +37,4 @@ Unrestricted
 11671
 
 11648 - fixing text bugs and extract camera func
+11684 - text in camera bounds, global camera state?

@@ -722,16 +722,12 @@ pub fn update() void {
 }
 
 fn setText(handle: i32, text: []const u8, pos: FPVec2, color: u32, size: i32) void {
-    const scale = camera.scale;
-    const camera_x = hero.x;
-    const camera_y = hero.y;
-    const m = Mat2d
-        .identity()
-        .translate(Vec2.fromIntegers(app.w >> 1, app.h >> 1))
-        .scale(Vec2.splat(scale))
-        .translate(Vec2.fromIntegers(-camera_x, -camera_y));
-    const xy = Vec2.fromIntegers(pos.x, pos.y).transform(m);
-    gain.js.text(handle, @intFromFloat(xy.x), @intFromFloat(xy.y), color, size, text.ptr, text.len);
+    if (camera.rc.test2(pos.x, pos.y)) {
+        const xy = Vec2.fromIntegers(pos.x, pos.y).transform(camera.matrix);
+        gain.js.text(handle, @intFromFloat(xy.x), @intFromFloat(xy.y), color, size, text.ptr, text.len);
+    } else {
+        unsetText(handle);
+    }
 }
 
 fn unsetText(handle: i32) void {
@@ -996,34 +992,34 @@ pub fn render() void {
     if (hero_hp != 0) {
         drawManShadow(hero.x, hero.y, hero_move_timer);
     }
-    particles.drawShadows(camera.rc);
+    particles.drawShadows();
 
     for (0..mobs_num) |i| {
         const mob = mobs[i];
-        if (mob.kind != 0) {
+        if (mob.kind != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
             drawManShadow(mob.x, mob.y, mob.move_timer);
         }
     }
 
     for (0..items_num) |i| {
         const item = items[i];
-        if (item.kind != 0) {
+        if (item.kind != 0 and item_aabb.translate(item.x, item.y).overlaps(camera.rc)) {
             gfx.shadow(item.x, item.y, 8 << fbits, colors.shadow);
         }
     }
 
     if (game_state == 1) {
-        drawHUD(camera.rc);
+        drawHUD();
     }
     drawMenu();
 }
 
-fn drawHUD(camera_rc: FPRect) void {
+fn drawHUD() void {
     gain.gfx.state.z = (1 << 15) << fbits;
     //gfx.state.matrix = Mat2d.identity();
     const space_x: i32 = @divTrunc(512 << fbits, 14);
     gain.gfx.state.matrix = gain.gfx.state.matrix
-        .translate(Vec2.fromIntegers(camera_rc.cx(), camera_rc.y))
+        .translate(Vec2.fromIntegers(camera.rc.cx(), camera.rc.y))
         .translate(Vec2.fromIntegers((-(512 << fbits) >> 1), 20 << fbits));
     for (0..13) |i| {
         var rc = FPRect.init(0, 0, 0, 0);
