@@ -39,3 +39,7 @@ Unrestricted
 11684 - text in camera bounds, global camera state?
 11806 - camera shake and kick back effect
 12447 - music
+
+## 7 sep
+12242 - colors & gfx pipe optimization
+12352 - mob max hp, guard weapon

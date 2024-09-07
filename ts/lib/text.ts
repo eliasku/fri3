@@ -4,8 +4,10 @@ const create = (): HTMLDivElement => ox.cloneNode(true) as HTMLDivElement;
 
 const pool: HTMLDivElement[] = [];
 
-export const text = (id: i32, x: i32, y: i32, color: u32, size: f32, text: string, _s = (1 / getDPR()), _el = pool[id] || create(), _child = _el.children[0] as HTMLDivElement) => {
-    if (!_el.parentNode) {
+export const text = (id: i32, x: i32, y: i32, color: u32, size: f32, text: string, _s = (1 / getDPR()), _el = pool[id]) => {
+    if (!_el) {
+        if (!text) return;
+        _el = create();
         pool[id] = _el;
         b.append(_el);
     }
@@ -15,6 +17,6 @@ export const text = (id: i32, x: i32, y: i32, color: u32, size: f32, text: strin
     _el.style.color = `#${color.toString(16).padStart(6, "0")}`
     //_el.style.textAlign = "center";
     _el.style.zIndex = "1" + y;
-    _child.innerText = text;
+    (_el.children[0] as HTMLDivElement).innerText = text;
 };
 

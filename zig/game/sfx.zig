@@ -45,7 +45,7 @@ pub fn update() void {
 
 var music_end_time: f32 = 0;
 var music_bar: u32 = 0;
-const gen_music_bars = 16 / 4;
+const gen_music_bars = 1;
 pub var music_menu = false;
 fn updateMusic() void {
     const time: f32 = @as(f32, @floatFromInt(gain.app.tic << 4)) / 1000;
@@ -58,39 +58,39 @@ fn updateMusic() void {
     }
 }
 
+fn badNote(v: f32, note: f32, t: f32) void {
+    playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, v, 0, note * 100, t);
+}
+
+var base_note: f32 = 0;
+
 fn generateNextMusicBar(time: f32, k: f32, cur_time: f32) void {
     var t = time;
-    const base: f32 = @floatFromInt((gain.app.tic * music_bar) % 12);
-    for (0..gen_music_bars) |j| {
-        if (t >= cur_time) {
-            const i = j & 0x3;
-
-            if (i == 0 or i == 3) {
-                playZzfxEx(.{ 1, 0, 100, 2e-3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5e-3, 0 }, 1, 0, 0, t);
-            }
-
-            if (!music_menu) {
-                const v: f32 = if (i > 1) 0.2 else 0.1;
-                playZzfxEx(.{ 1, 0, 1e3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.1, 0 }, v, 0, 0, t);
-            }
-
-            const note_volume: f32 = if (music_menu) 0.1 else 0.3;
-            //const note: f32 = @floatFromInt(j);
-            if (j != 3) {
-                const note: f32 = base * 100;
-                playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, note_volume, 0, note, t);
-                // playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, 1, 0, note * 100, t + 1 * k / 4);
-                playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, note_volume / 2, 0, note + 500, t + 2 * k / 4);
-            }
-            if (j == 3) {
-                const note: f32 = (base + 3) * 100;
-                // playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, 1, 0, note * 100, t);
-                // playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, 1, 0, (note + 0.5) * 100, t + 1 * k / 4);
-                playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, note_volume, 0, note, t);
-                playZzfxEx(.{ 1, 0, 440, 0.01, 0.1, 0.2, 0, 1, 1, 0, 0, 0, 0.1, 0, 0, 0, 0, 1, 0, 0 }, note_volume / 2, 0, note + 700, t + 2 * k / 4);
-            }
-
-            t += k;
+    if (t >= cur_time) {
+        const j = music_bar % 16;
+        const i = j & 0x3;
+        if (i == 0) {
+            base_note = @floatFromInt((gain.app.tic * music_bar) % 12);
         }
+        if (i == 0 or i == 3) {
+            playZzfxEx(.{ 1, 0, 100, 2e-3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5e-3, 0 }, 1, 0, 0, t);
+        }
+
+        if (!music_menu) {
+            const v: f32 = if (i > 1) 0.2 else 0.1;
+            playZzfxEx(.{ 1, 0, 1e3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.1, 0 }, v, 0, 0, t);
+        }
+
+        const note_volume: f32 = if (music_menu) 0.1 else 0.3;
+        //const note: f32 = @floatFromInt(j);
+        if (j != 3) {
+            badNote(note_volume, base_note, t);
+            badNote(note_volume / 2, base_note + 5, t + 2 * k / 4);
+        } else {
+            badNote(note_volume, base_note + 3, t);
+            badNote(note_volume / 2, base_note + 10, t + 2 * k / 4);
+        }
+
+        t += k;
     }
 }

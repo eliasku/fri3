@@ -25,7 +25,7 @@ pub inline fn fromInt(x: i32, y: i32, w: i32, h: i32) Self {
     };
 }
 
-pub fn translate(self: Self, dx: i32, dy: i32) Self {
+pub inline fn translate(self: Self, dx: i32, dy: i32) Self {
     return .{
         .x = self.x + dx,
         .y = self.y + dy,
@@ -34,7 +34,7 @@ pub fn translate(self: Self, dx: i32, dy: i32) Self {
     };
 }
 
-pub fn expand(self: Self, ex: i32, ey: i32) Self {
+pub inline fn expand(self: Self, ex: i32, ey: i32) Self {
     return .{
         .x = self.x - ex,
         .y = self.y - ey,
@@ -43,36 +43,36 @@ pub fn expand(self: Self, ex: i32, ey: i32) Self {
     };
 }
 
-pub fn expandInt(self: Self, v: i32) Self {
+pub inline fn expandInt(self: Self, v: i32) Self {
     const s = v << fp32.fbits;
     return self.expand(s, s);
 }
 
-pub fn r(self: Self) i32 {
+pub inline fn r(self: Self) i32 {
     return self.x + self.w;
 }
 
-pub fn b(self: Self) i32 {
+pub inline fn b(self: Self) i32 {
     return self.y + self.h;
 }
 
-pub fn cx(self: Self) i32 {
+pub inline fn cx(self: Self) i32 {
     return self.x + (self.w >> 1);
 }
 
-pub fn cy(self: Self) i32 {
+pub inline fn cy(self: Self) i32 {
     return self.y + (self.h >> 1);
 }
 
 // https://www.gamedev.net/forums/topic/619296-ultra-fast-2d-aabb-overlap-test/4907175/?page=1
-pub fn overlaps(self: Self, other: Self) bool {
+pub inline fn overlaps(self: Self, other: Self) bool {
     return ((self.x - other.r()) &
         (self.y - other.b()) &
         (other.x - self.r()) &
         (other.y - self.b()) & -2147483648) != 0;
 }
 
-pub fn test2(self: Self, x: i32, y: i32) bool {
+pub inline fn test2(self: Self, x: i32, y: i32) bool {
     return ((self.x - x) &
         (self.y - y) &
         (x - self.r()) &

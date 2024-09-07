@@ -13,7 +13,7 @@ pub const screen_size = 512 << fp32.fbits;
 pub var matrix: Mat2d = undefined;
 pub var shake_c: i32 = 0;
 var g_rnd = gain.math.Rnd{ .seed = 0 };
-
+const zoom_tweak = 1.5;
 pub fn shakeM() void {
     shake_c = 16;
 }
@@ -31,7 +31,7 @@ pub fn update(tx: i32, ty: i32) void {
     const app_h: f32 = @floatFromInt(app.h);
     const short_side = @min(app_w, app_h);
     ui_scale = short_side / screen_size;
-    scale = ui_scale / zoom;
+    scale = ui_scale / (zoom / zoom_tweak);
 
     position.x = tx;
     position.y = ty;

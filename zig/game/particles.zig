@@ -125,7 +125,10 @@ pub fn draw() void {
                 3 => {
                     gfx.knife(0);
                 },
-                else => gfx.rect(p.rc, p.color),
+                else => {
+                    gfx.colorRGB(p.color);
+                    gfx.rect_(p.rc);
+                },
             }
             gfx.restore();
         }
@@ -137,7 +140,8 @@ pub fn draw() void {
         if (camera.rc.test2(p.x, y)) {
             //if (camera_rc.x < p.x and camera_rc.y < p.y and p.x < camera_rc.r() and p.y < camera_rc.b()) {
             gfx.depth(0, if (p.t > 0) p.y else (3 << fp32.fbits));
-            gfx.rect(FPRect.init(p.x, y, 0, 0).expand(p.size, p.size >> 1), p.color);
+            gfx.colorRGB(p.color);
+            gfx.rect_(FPRect.init(p.x, y, 0, 0).expand(p.size, p.size >> 1));
         }
     }
 }
@@ -147,14 +151,14 @@ pub fn drawShadows() void {
     for (0..particles_num) |i| {
         const p = particles[i];
         if (p.t > 0 and rc.test2(p.x, p.y)) {
-            gfx.shadow(p.x, p.y, p.size, colors.shadow);
+            gfx.shadow(p.x, p.y, p.size);
         }
     }
 
     for (0..parts_num) |i| {
         const p = parts[i];
         if (rc.test2(p.x, p.y)) {
-            gfx.shadow(p.x, p.y, p.rc.w >> 1, colors.shadow);
+            gfx.shadow(p.x, p.y, p.rc.w >> 1);
         }
     }
 }
@@ -199,8 +203,8 @@ pub fn add(n: i32, x: i32, y: i32, z: i32) void {
                 .vy = fp32.fromFloat(d * gain.math.sintau(a) / 2),
                 .vz = g_rnd.int(0, 1 << fp32.fbits),
                 .color = Color32.lerp8888b(
-                    0xFFCC0000,
-                    0xFF990000,
+                    0xCC0000,
+                    0x990000,
                     g_rnd.next() & 0xFF,
                 ),
                 .max_time = t,

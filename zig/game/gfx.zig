@@ -5,49 +5,49 @@ const gain = @import("../gain/main.zig");
 const gfx = gain.gfx;
 const Vec2 = gain.math.Vec2;
 const fbits = fp32.fbits;
+const Color32 = gain.math.Color32;
 
-pub fn quad(x: i32, y: i32, w: i32, h: i32, c: u32) void {
+pub fn quad_(x: i32, y: i32, w: i32, h: i32) void {
     gfx.requireTriangles(4, 6);
     gfx.addQuadIndices();
-    //gfx.quad(Vec2.fromIntegers(x, y), Vec2.fromIntegers(w, h), c);
-    color(c);
     vertex(x, y);
     vertex(x + w, y);
     vertex(x + w, y + h);
     vertex(x, y + h);
 }
 
-pub fn rect(rc: FPRect, c: u32) void {
-    quad(rc.x, rc.y, rc.w, rc.h, c);
+pub inline fn rect_(rc: FPRect) void {
+    quad_(rc.x, rc.y, rc.w, rc.h);
 }
 
-pub fn depth(x: i32, y: i32) void {
+pub inline fn depth(x: i32, y: i32) void {
     _ = x;
     gfx.state.z = y;
 }
 
 pub fn attention() void {
-    color(0xFF000000);
+    colorRGB(0x000000);
     circle(0, 0, 2 << fbits, 2 << fbits, 8);
-    color(0xFFFFFFFF);
+    colorRGB(0xFFFFFF);
     circle(0, 0, 6 << fbits, 2 << fbits, 6);
 }
 
 pub fn scream() void {
-    color(0xFF000000);
+    colorRGB(0x000000);
     line((2 << fp32.fbits), (-2 << fp32.fbits), (8 << fp32.fbits), (-8 << fp32.fbits), 0, 2 << fp32.fbits);
     line((2 << fp32.fbits), (0 << fp32.fbits), (10 << fp32.fbits), (-4 << fp32.fbits), 0, 2 << fp32.fbits);
     line((0 << fp32.fbits), (-2 << fp32.fbits), (4 << fp32.fbits), (-10 << fp32.fbits), 0, 2 << fp32.fbits);
 }
 
-pub fn head(lx: i32, ly: i32, skin_color: u32, hair: u32, eye_color: u32) void {
+pub fn head(lx: i32, ly: i32, skin_color: u32) void {
     const eye = FPRect.fromInt(-1, -2, 2, 4);
     if (ly >= 0) {
-        rect(eye.translate(lx - (2 << fbits), ly), eye_color);
-        rect(eye.translate(lx + (2 << fbits), ly), eye_color);
+        colorRGB(0);
+        rect_(eye.translate(lx - (2 << fbits), ly));
+        rect_(eye.translate(lx + (2 << fbits), ly));
     }
-    rect(FPRect.init(0, 0, 0, 4 << fbits).expandInt(5), skin_color);
-    _ = hair;
+    colorRGB(skin_color);
+    rect_(FPRect.init(0, 0, 0, 4 << fbits).expandInt(5));
 }
 
 pub fn cross(rc: FPRect) void {
@@ -57,23 +57,29 @@ pub fn cross(rc: FPRect) void {
 
 pub fn deadHead(skin_color: u32) void {
     const eye = FPRect.fromInt(-1, -2, 2, 4);
-    color(0xFF000000);
+    colorRGB(0x0);
     cross(eye.translate(-(2 << fbits), 0));
     cross(eye.translate((2 << fbits), 0));
-    rect(FPRect.init(0, 0, 0, 4 << fbits).expandInt(5), skin_color);
+    colorRGB(skin_color);
+    rect_(FPRect.init(0, 0, 0, 4 << fbits).expandInt(5));
 }
 
 pub fn knife(dist: i32) void {
-    color(0xFF333333);
+    colorRGB(0x333333);
     line(dist, 0, dist + (2 << fbits), 0, 2 << fbits, 2 << fbits);
-    color(0xFF999999);
+    colorRGB(0x999999);
     line(dist + (2 << fbits), 0, dist + (10 << fbits), -2 << fbits, 2 << fbits, 3 << fbits);
-    color(0xFFDDDDDD);
+    colorRGB(0xDDDDDD);
     line(dist + (10 << fbits), -2 << fbits, dist + (14 << fbits), -5 << fbits, 3 << fbits, 2 << fbits);
 }
 
+pub fn guardWeapon(dist: i32) void {
+    colorRGB(0x220044);
+    line(dist, 0, dist + (8 << fbits), 0, 2 << fbits, 4 << fbits);
+}
+
 pub fn hockeyMask(co: u32) void {
-    color(0xFF000000);
+    colorRGB(0x0);
     circle(-3 << fbits, -3 << fbits, 1 << fbits, 1 << fbits, 4);
     circle(3 << fbits, 3 << fbits, 1 << fbits, 1 << fbits, 4);
     circle(-3 << fbits, 3 << fbits, 1 << fbits, 1 << fbits, 4);
@@ -82,7 +88,7 @@ pub fn hockeyMask(co: u32) void {
     circle((2 << fbits), 0, 1 << fbits, 1 << fbits, 4);
     circle(0, (-2 << fbits), 1 << fbits, 1 << fbits, 4);
     circle(0, (2 << fbits), 1 << fbits, 1 << fbits, 4);
-    color(co);
+    colorRGB(co);
     circle(0, 0, 6 << fbits, 7 << fbits, 10);
 }
 
@@ -108,8 +114,8 @@ pub fn trouses() void {
     );
 }
 
-pub fn shadow(x: i32, y: i32, sz: i32, c: u32) void {
-    color(c);
+pub fn shadow(x: i32, y: i32, sz: i32) void {
+    color(0x40000000);
     circle(x, y, sz, sz >> 1, 8);
 }
 
@@ -117,7 +123,11 @@ pub fn color(c: u32) void {
     gfx.state.color = gain.math.Color32.fromARGB(c).abgr();
 }
 
-pub fn vertex(x: i32, y: i32) void {
+pub noinline fn colorRGB(c: u32) void {
+    color(c | 0xFF000000);
+}
+
+pub noinline fn vertex(x: i32, y: i32) void {
     const xy = Vec2.fromIntegers(x, y).transform(gfx.state.matrix);
     gfx.state.vb[gain.gfx.state.vertex] = gfx.Vertex.init(
         xy.x,
@@ -128,7 +138,7 @@ pub fn vertex(x: i32, y: i32) void {
     gfx.state.vertex += 1;
 }
 
-pub fn circle(x: i32, y: i32, rx: i32, ry: i32, segments: u32) void {
+pub noinline fn circle(x: i32, y: i32, rx: i32, ry: i32, segments: u32) void {
     if (segments < 3) return;
     gfx.requireTriangles(segments, 3 * (segments - 2));
 
@@ -148,7 +158,7 @@ pub fn circle(x: i32, y: i32, rx: i32, ry: i32, segments: u32) void {
     }
 }
 
-pub fn line(x0: i32, y0: i32, x1: i32, y1: i32, w1: i32, w2: i32) void {
+pub noinline fn line(x0: i32, y0: i32, x1: i32, y1: i32, w1: i32, w2: i32) void {
     gfx.requireTriangles(4, 6);
     gfx.addQuadIndices();
 
@@ -175,4 +185,14 @@ pub fn banner13() void {
     line(2 << fbits, -4 << fbits, 0 << fbits, 0 << fbits, 1 << fbits, 1 << fbits);
     line(0 << fbits, 0 << fbits, 2 << fbits, 0 << fbits, 1 << fbits, 1 << fbits);
     line(2 << fbits, 0 << fbits, 0 << fbits, 4 << fbits, 1 << fbits, 1 << fbits);
+}
+
+pub fn bar(val: i32, max: i32, c: u32) void {
+    const hw = (max * 4) >> 1;
+    colorRGB(c);
+    rect_(FPRect.fromInt(-hw + 2, -2, val * 4, 4));
+    colorRGB(Color32.lerp8888b(0x0, c, 0x40));
+    rect_(FPRect.fromInt(-hw + 2, -2, max * 4, 4));
+    colorRGB(0x0);
+    rect_(FPRect.fromInt(-hw, -4, 4 + max * 4, 8));
 }
