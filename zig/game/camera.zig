@@ -12,7 +12,8 @@ pub var zoom: f32 = 1.0;
 pub const screen_size = 512 << fp32.fbits;
 pub var matrix: Mat2d = undefined;
 pub var shake_c: i32 = 0;
-var g_rnd = gain.math.Rnd{ .seed = 0 };
+const g = @import("g.zig");
+
 const zoom_tweak = 1.5;
 pub fn shakeM() void {
     shake_c = 16;
@@ -35,8 +36,8 @@ pub fn update(tx: i32, ty: i32) void {
 
     position.x = tx;
     position.y = ty;
-    const shx = g_rnd.int(-shake_c, shake_c) << fp32.fbits;
-    const shy = g_rnd.int(-shake_c, shake_c) << fp32.fbits;
+    const shx = g.rnd.int(-shake_c, shake_c) << fp32.fbits;
+    const shy = g.rnd.int(-shake_c, shake_c) << fp32.fbits;
     matrix = Mat2d
         .identity()
         .translate(Vec2.fromIntegers(app.w >> 1, app.h >> 1))
@@ -51,5 +52,5 @@ pub fn update(tx: i32, ty: i32) void {
         ty - (sc_h >> 1),
         sc_w,
         sc_h,
-    ); //.expandInt(-32);
+    ).expandInt(-32);
 }

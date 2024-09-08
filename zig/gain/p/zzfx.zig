@@ -5,10 +5,6 @@
 // playSamples(..samples) {
 //
 // }
-//
-//
-//
-//
 
 const _volume = 0.3;
 const _sampleRate = 44100;
@@ -17,12 +13,11 @@ const std = @import("std");
 const Rnd = @import("../math/Rnd.zig");
 const mathf = @import("../math/functions.zig");
 const copysign = @import("../wasm.zig").copysign;
-
-var _rnd = Rnd{ .seed = 0 };
+const g = @import("../../game/g.zig");
 
 // -1 .. +1
 fn randomNorm() f32 {
-    return 2 * _rnd.float() - 1;
+    return 2 * g.rnd.float() - 1;
 }
 
 fn clamp(x: f32) f32 {

@@ -14,8 +14,7 @@ const particles = @import("particles.zig");
 const colors = @import("colors.zig");
 const texts = @import("texts.zig");
 const camera = @import("camera.zig");
-
-var g_rnd: gain.math.Rnd = .{ .seed = 0 };
+const g = @import("g.zig");
 
 const Hero = struct {
     x: i32,
@@ -118,7 +117,7 @@ const ForcedMove = struct {
 
 const student_hp_max = 4;
 const guard_hp_max = 8;
-const hit_timer_max = 15;
+const hit_timer_max = 31;
 const Mob = struct {
     x: i32,
     y: i32,
@@ -357,9 +356,9 @@ fn mobSetMove(mob: *Mob, dx: i32, dy: i32, speed: i32) void {
 fn setMobRandomMovement(mob: *Mob) void {
     mobSetMove(
         mob,
-        g_rnd.int(-10, 10),
-        g_rnd.int(-10, 10),
-        if (g_rnd.next() & 7 == 0) 0 else 1 << fbits,
+        g.rnd.int(-10, 10),
+        g.rnd.int(-10, 10),
+        if (g.rnd.next() & 7 == 0) 0 else 1 << fbits,
     );
 }
 
@@ -403,7 +402,7 @@ fn updateMobs() void {
             }
 
             if (mob.*.ai_timer <= 0) {
-                mob.*.ai_timer = @intCast(g_rnd.next() & 0x3f);
+                mob.*.ai_timer = @intCast(g.rnd.next() & 0x3f);
                 if (mob.danger) {
                     mob.*.target_map_x = 0;
                     mob.*.target_map_y = 0;
@@ -489,11 +488,11 @@ fn updateMobs() void {
                 mob.*.move_timer = 0;
             }
 
-            if (mob.hit_timer > 0) {
+            if (mob.hit_timer != 0) {
                 mob.*.hit_timer -= 1;
             }
 
-            if (mob.hp != mob.hp_max and g_rnd.next() & 0x7 == 0) {
+            if (mob.hp != mob.hp_max and g.rnd.next() & 0x7 == 0) {
                 const mob_aabb = mob_hitbox_local.translate(mob.x, mob.y);
                 particles.add(1, mob_aabb.cx(), mob_aabb.cy(), 20 << fbits);
             }
@@ -506,7 +505,7 @@ fn updateMobs() void {
                         setText(@bitCast(i + 1), texts.mob[mob.text_i], FPVec2.init(mob.x, mob.y - (48 << fbits)), 0xFFFFFF, 2);
                     }
                 } else {
-                    if (g_rnd.next() & 63 == 0) {
+                    if (g.rnd.next() & 63 == 0) {
                         var start_index: u32 = 5;
                         if (mob.danger) {
                             if (mob.is_student) {
@@ -515,7 +514,7 @@ fn updateMobs() void {
                                 start_index = 10;
                             }
                         }
-                        selectMobText(i, start_index + (g_rnd.next() % 5));
+                        selectMobText(i, start_index + (g.rnd.next() % 5));
                         // pick text index
                     }
                 }
@@ -525,8 +524,8 @@ fn updateMobs() void {
                 const mob_aabb = mob_hitbox_local.translate(mob.x, mob.y);
                 const mob_overlaps_hero = mob_aabb.overlaps(hero_aabb);
                 if (mob_overlaps_hero) {
-                    if (mob.hit_timer < (hit_timer_max >> 1) and hero_attack_t > 24) {
-                        mob.*.hp = @max(0, mob.hp - (if (!mob.danger) mob.hp_max else g_rnd.int(2, 4)));
+                    if (mob.hit_timer < (hit_timer_max >> 2) and hero_attack_t > 24) {
+                        mob.*.hp = @max(0, mob.hp - (if (!mob.danger) mob.hp_max else g.rnd.int(2, 4)));
                         mob.*.hit_timer = hit_timer_max;
                         mob.forced = .{
                             .v = FPVec2.init(mob.x - hero.x, mob.y - hero.y).rescale(3 << fbits),
@@ -580,7 +579,7 @@ fn updateMobs() void {
 
 fn hitHero() void {
     sfx.hit();
-    hero_hp = @max(0, hero_hp - g_rnd.int(1, 3));
+    hero_hp = @max(0, hero_hp - g.rnd.int(1, 3));
     const kx = hero.x;
     const ky = hero.y;
     particles.add(32, kx, ky, 20 << fbits);
@@ -822,8 +821,8 @@ pub fn update() void {
             hero_text_t -= 1;
         } else {
             unsetText(0);
-            if (g_rnd.next() & 0x7F == 0) {
-                hero_text_i = g_rnd.next() % texts.hero.len;
+            if (g.rnd.next() & 0x7F == 0) {
+                hero_text_i = g.rnd.next() % texts.hero.len;
                 hero_text_t = texts.hero[hero_text_i].len << 2;
             }
         }
@@ -1014,8 +1013,8 @@ fn drawMob(i: usize) void {
     gfx.depth(x, y);
 
     if (mob.danger_t > 0) {
-        x += g_rnd.int(-1, 1) << fbits;
-        y += g_rnd.int(-2, 0) << fbits;
+        x += g.rnd.int(-1, 1) << fbits;
+        y += g.rnd.int(-2, 0) << fbits;
         gfx.push(x + (8 << fbits), y - (32 << fbits), 0);
         gfx.scream();
         gfx.restore();
@@ -1036,10 +1035,10 @@ fn drawMob(i: usize) void {
     var head_color = getMobColor(mob.kind);
     var body_color = head_color;
     if (!mob.is_student) {
-        body_color = 0xFF666688;
+        body_color = colors.guards[@intCast(mob.kind - 1)];
     }
-    head_color = Color32.lerp8888b(head_color, 0xFFFFFFFF, mob.hit_timer << 4);
-    body_color = Color32.lerp8888b(body_color, 0xFFFFFFFF, mob.hit_timer << 4);
+    head_color = Color32.lerp8888b(head_color, 0xFFFFFF, mob.hit_timer << 3);
+    body_color = Color32.lerp8888b(body_color, 0xFFFFFF, mob.hit_timer << 3);
     drawTempMan(x, y, mob.lx, mob.ly, mob.move_timer, body_color, head_color, getMobTrousesColor(mob.kind), false, mob.male, mob.is_student, mob.attack_t);
 }
 
@@ -1377,9 +1376,9 @@ fn updateGameState() void {
                 //camera.zoom = 1;
                 for (4..16) |cy| {
                     for (4..16) |cx| {
-                        setMapPlus(@bitCast(cx), @bitCast(cy), @intCast(g_rnd.int(1, 8)));
-                        if (g_rnd.next() & 0x7 == 0) {
-                            placeMob(@bitCast(cx), @bitCast(cy), g_rnd.int(1, 3), g_rnd.next() & 1 == 1, true);
+                        setMapPlus(@bitCast(cx), @bitCast(cy), @intCast(g.rnd.int(1, 8)));
+                        if (g.rnd.next() & 0x7 == 0) {
+                            placeMob(@bitCast(cx), @bitCast(cy), g.rnd.int(1, 3), g.rnd.next() & 1 == 0, true);
                         }
                     }
                 }

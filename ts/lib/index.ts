@@ -39,15 +39,16 @@ export const run = (instance: WebAssembly.Instance) => {
   const onFrame = (ts: DOMHighResTimeStamp) => {
     accum += ts > prev ? ts - prev : 0;
     prev = ts;
-    if (accum >> 4) {
+    const A = 1000 / 60;
+    if ((accum / A) | 0) {
       const w = gl.drawingBufferWidth;
       const h = gl.drawingBufferHeight;
       beginFrame(w, h);
-      zig._onFrameRequest(accum >> 4, w, h);
+      zig._onFrameRequest((accum / A) | 0, w, h);
       if (import.meta.env.DEV) {
         updateStatsText(ts);
       }
-      accum -= accum >> 4 << 4;
+      accum -= ((accum / A) | 0) * A;
     }
     requestAnimationFrame(onFrame);
   };

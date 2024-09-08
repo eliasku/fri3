@@ -48,7 +48,7 @@ var music_bar: u32 = 0;
 const gen_music_bars = 1;
 pub var music_menu = false;
 fn updateMusic() void {
-    const time: f32 = @as(f32, @floatFromInt(gain.app.tic << 4)) / 1000;
+    const time: f32 = @as(f32, @floatFromInt(gain.app.tic)) * 60 / 1000;
     const temp: f32 = if (music_menu) 40 else 80;
     const k: f32 = (60.0 / temp) / 4.0;
     if (time >= music_end_time - k) {

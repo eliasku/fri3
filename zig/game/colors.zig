@@ -18,6 +18,12 @@ pub const mob: [3]u32 = .{
     0xCCAA66,
 };
 
+pub const guards: [3]u32 = .{
+    0x333366,
+    0x993333,
+    0x996633,
+};
+
 pub const mob_trouses: [3]u32 = .{
     0xFF00FF,
     0xFFFF00,
