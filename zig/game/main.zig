@@ -644,7 +644,11 @@ fn getInputVector(speed: i32) FPVec2 {
         if (p.is_down) {
             const dist = camera.ui_scale * (64 << fbits);
             const d = p.pos.sub(p.start);
-            if (d.length() > dist) {
+            const l = d.length();
+            if (l > dist / 2) {
+                if (l > dist) {
+                    p.start = p.pos.sub(d.normalize().scale(dist));
+                }
                 dx = @intFromFloat(d.x);
                 dy = @intFromFloat(d.y);
             }
@@ -1043,18 +1047,18 @@ fn drawVPad() void {
     if (gain.pointers.primary()) |p| {
         if (p.is_down) {
             const scale = camera.ui_scale;
-            gain.gfx.state.z = 10 << fbits;
+            gain.gfx.state.z = (1 << 15) << fbits;
             const q = FPVec2.init(@intFromFloat(p.pos.x), @intFromFloat(p.pos.y));
             const s = FPVec2.init(@intFromFloat(p.start.x), @intFromFloat(p.start.y));
             const r = fp32.scale(fp32.fromInt(32), scale);
             const r2 = fp32.scale(fp32.fromInt(64 + 32 - 8), scale);
             const r3 = fp32.scale(fp32.fromInt(64 + 32), scale);
-            gfx.colorRGB(0x999999);
-            gfx.circle(q.x, q.y, r, r, 64);
-            gfx.colorRGB(0x444444);
-            gfx.circle(s.x, s.y, r2, r2, 64);
-            gfx.colorRGB(0x111111);
+            gfx.color(0x33333333);
             gfx.circle(s.x, s.y, r3, r3, 64);
+            gfx.color(0x33000000);
+            gfx.circle(s.x, s.y, r2, r2, 64);
+            gfx.color(0x99999999);
+            gfx.circle(q.x, q.y, r, r, 64);
         }
     }
 }
@@ -1062,7 +1066,6 @@ fn drawVPad() void {
 pub fn render() void {
     gain.gfx.setupOpaquePass();
     gain.gfx.state.matrix = Mat2d.identity();
-    drawVPad();
 
     if (game_state == 1) {
         drawHUD();
@@ -1133,7 +1136,9 @@ pub fn render() void {
         }
     }
 
-    drawMenu();
+    gain.gfx.state.matrix = Mat2d.identity();
+    drawVPad();
+    drawBlackOverlay();
 }
 
 fn drawHUD() void {
@@ -1439,10 +1444,8 @@ fn updateGameState() void {
     }
 }
 
-fn drawMenu() void {
-    // draw text
+fn drawBlackOverlay() void {
     if (no_black_screen_t < 15) {
-        gain.gfx.state.matrix = Mat2d.identity();
         gain.gfx.state.z = (1 << 15) << fbits;
         gfx.color(Color32.lerp8888b(
             0xFF000000,

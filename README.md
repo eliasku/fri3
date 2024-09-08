@@ -43,3 +43,7 @@ Unrestricted
 ## 7 sep
 12242 - colors & gfx pipe optimization
 12352 - mob max hp, guard weapon
+
+## 8 sep
+12374 - vpad reworked
+
