@@ -54,3 +54,4 @@ Unrestricted
 12466 - opt mob kind, gfx attack circle
 
 12389 - unify particles + body parts
+12333 - disable cheats

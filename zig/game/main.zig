@@ -619,13 +619,15 @@ fn clearMobText(i: u32) void {
 
 fn getInputVector(speed: i32) FPVec2 {
     const keys = gain.keyboard;
-    // cheats
-    if (game_state == 1) {
-        if (keys.down[keys.Code.enter] != 0) {
-            addKill();
-        }
-        if (keys.down[keys.Code.space] != 0) {
-            hitHero();
+
+    if (g.is_debug) {
+        if (game_state == 1) {
+            if (keys.down[keys.Code.enter] != 0) {
+                addKill();
+            }
+            if (keys.down[keys.Code.space] != 0) {
+                hitHero();
+            }
         }
     }
 

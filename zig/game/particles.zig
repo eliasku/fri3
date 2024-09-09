@@ -68,7 +68,6 @@ pub fn draw() void {
             //if (camera_rc.x < p.x and camera_rc.y < p.y and p.x < camera_rc.r() and p.y < camera_rc.b()) {
             gfx.depth(0, if (p.t > 0 or p.spr != 0) p.y else (3 << fp32.fbits));
             gfx.push(p.x, y, fp32.toFloat(p.a) / 4);
-            gfx.colorRGB(p.color);
             switch (p.spr) {
                 1 => {
                     gfx.deadHead(p.color);
