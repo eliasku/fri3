@@ -40,7 +40,10 @@ pub inline fn configure(comptime update: fn () void, comptime render: fn () void
 
             var steps_left = total_steps;
             while (steps_left != 0) {
-                update();
+                // drop extra frames
+                if (steps_left < 8) {
+                    update();
+                }
                 app.tic += 1;
                 steps_left -= 1;
                 pointers.reset();

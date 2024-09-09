@@ -52,5 +52,6 @@ pub fn update(tx: i32, ty: i32) void {
         ty - (sc_h >> 1),
         sc_w,
         sc_h,
-    ).expandInt(-32);
+    );
+    //.expandInt(-32);
 }

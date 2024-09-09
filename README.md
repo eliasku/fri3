@@ -47,3 +47,6 @@ Unrestricted
 ## 8 sep
 12374 - vpad reworked
 
+## 9 sep
+12470 - colors, particles+, background stars, body part, 
+12487 - frames drop

@@ -17,9 +17,7 @@ pub const Code = .{
 };
 pub var down: [0x100]u1 = undefined;
 
-// const pp: [2]u1 = .{ 0, 1 };
 pub fn onEvent(event: u32, code_val: u32) void {
-    //down[code_val & 0xFF] = pp[event];
     down[code_val & 0xFF] = switch (event) {
         0 => 1,
         1 => 0,

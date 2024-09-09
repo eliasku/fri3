@@ -202,13 +202,13 @@ pub fn add(n: i32, x: i32, y: i32, z: i32) void {
                 .vy = fp32.fromFloat(d * gain.math.sintau(a) / 2),
                 .vz = g.rnd.int(0, 1 << fp32.fbits),
                 .color = Color32.lerp8888b(
-                    0xCC0000,
-                    0x990000,
-                    g.rnd.next() & 0xFF,
+                    colors.blood_dark,
+                    colors.blood_light,
+                    g.rnd.next() >> 24,
                 ),
                 .max_time = t,
                 .t = t,
-                .size = g.rnd.int(1, 4) << fp32.fbits,
+                .size = g.rnd.int(1 << fp32.fbits >> 1, 3 << fp32.fbits),
             };
             particles_num += 1;
         }

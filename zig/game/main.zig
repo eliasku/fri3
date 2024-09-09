@@ -220,8 +220,9 @@ fn setMapPlus(x: i32, y: i32, kind: map.Cell) void {
 }
 
 fn initLevel() void {
-    var rnd = gain.math.Rnd{ .seed = (1 + level) };
-
+    var rnd = gain.math.Rnd{ .seed = (31 + level << 1) };
+    @memset(&map.map, 0);
+    @memset(&map.colors, 0);
     items_num = 0;
     mobs_num = 0;
     portals_num = 0;
@@ -536,17 +537,21 @@ fn updateMobs() void {
                         const kx = mob_aabb.cx();
                         const ky = mob_aabb.cy();
                         particles.add(32, kx, ky, 20 << fbits);
-                        camera.shakeS();
+
                         if (mob.hp <= 0) {
                             camera.shakeM();
-                            const c = getMobColor(mob.kind);
+                            var c = getMobColor(mob.kind);
                             var rc = FPRect.init(0, 0, 0, 4 << fbits).expandInt(5);
                             particles.addPart(kx, ky, c, 1, rc);
+                            if (!mob.is_student) {
+                                c = colors.guards[@intCast(mob.kind - 1)];
+                            }
                             rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
-                            particles.addPart(kx - (4 >> fbits), ky, c, 0, rc);
-                            particles.addPart(kx + (4 >> fbits), ky, c, 0, rc);
-                            particles.addPart(kx - (4 >> fbits), ky + (10 >> fbits), c, 0, rc);
-                            particles.addPart(kx + (4 >> fbits), ky + (10 >> fbits), c, 0, rc);
+                            particles.addPart(kx, ky, c, 0, rc);
+                            particles.addPart(kx, ky, c, 0, rc);
+                            particles.addPart(kx, ky, c, 0, rc);
+                            particles.addPart(kx, ky, c, 0, rc);
+                            particles.addPart(kx, ky, c, 0, FPRect.init(0, 0, 0, 0).expandInt(5));
 
                             mob.*.kind = 0;
                             clearMobText(i);
@@ -554,17 +559,17 @@ fn updateMobs() void {
                             if (mob.is_student) {
                                 addKill();
                             }
+                        } else {
+                            camera.shakeS();
                         }
                     }
 
-                    if (!mob.is_student and mob.attack_t == 0) {
-                        // attack sfx;
-                        mob.*.attack_t = 32;
+                    if (!mob.is_student and mob.attack_t > 24) {
+                        mob.attack_t = 24;
                         hero_forced = .{
                             .v = FPVec2.init(hero.x - mob.x, hero.y - mob.y).rescale(3 << fbits),
                             .t = 8,
                         };
-
                         hitHero();
                     }
                 }
@@ -572,6 +577,9 @@ fn updateMobs() void {
 
             if (mob.attack_t > 0) {
                 mob.*.attack_t -= 1;
+            } else if (danger and !mob.is_student) {
+                // attack sfx;
+                mob.*.attack_t = 32;
             }
         }
     }
@@ -583,22 +591,21 @@ fn hitHero() void {
     const kx = hero.x;
     const ky = hero.y;
     particles.add(32, kx, ky, 20 << fbits);
-    camera.shakeS();
     if (hero_hp == 0) {
         camera.shakeM();
-        const c = colors.hero_body_color;
         var rc = FPRect.init(0, 0, 0, 4 << fbits).expandInt(5);
-        particles.addPart(kx, ky, c, 1, rc);
-        particles.addPart(kx, ky, c, 2, rc);
-        particles.addPart(kx, ky, c, 3, rc);
+        particles.addPart(kx, ky, colors.hero_face_color, 1, rc);
+        particles.addPart(kx, ky, colors.hero_face_color, 2, rc);
+        particles.addPart(kx, ky, colors.hero_face_color, 3, rc);
         rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
-        particles.addPart(kx - (4 >> fbits), ky, c, 0, rc);
-        particles.addPart(kx + (4 >> fbits), ky, c, 0, rc);
-        particles.addPart(kx - (4 >> fbits), ky + (10 >> fbits), c, 0, rc);
-        particles.addPart(kx + (4 >> fbits), ky + (10 >> fbits), c, 0, rc);
-
-        // mob.*.kind = 0;
+        particles.addPart(kx, ky, colors.hero_body_color, 0, rc);
+        particles.addPart(kx, ky, colors.hero_body_color, 0, rc);
+        particles.addPart(kx, ky, colors.hero_body_color, 0, rc);
+        particles.addPart(kx, ky, colors.hero_body_color, 0, rc);
+        particles.addPart(kx, ky, colors.hero_body_color, 0, FPRect.init(0, 0, 0, 0).expandInt(5));
         unsetText(0);
+    } else {
+        camera.shakeS();
     }
 }
 
@@ -945,8 +952,8 @@ fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: i32, body_color: 
 
 fn drawHero() void {
     if (hero_hp != 0) {
-        const head_color = Color32.lerp8888b(0xFF888888, 0xFFFFFFFF, hero_visible << 3);
-        const body_color = Color32.lerp8888b(0xFF000000, 0xFF333333, hero_visible << 3);
+        const head_color = Color32.lerp8888b(0x888888, colors.paper, hero_visible << 3);
+        const body_color = Color32.lerp8888b(0x0, colors.hero_body_color, hero_visible << 3);
         gfx.depth(hero.x, hero.y);
         drawTempMan(hero.x, hero.y, hero_look_x, hero_look_y, hero_move_timer, body_color, head_color, 0, true, true, false, hero_attack_t);
     }
@@ -1152,15 +1159,15 @@ fn drawHUD() void {
     gain.gfx.state.matrix = m;
 
     gfx.push(42 << fbits, (8 + 30) << fbits, 0);
-    gfx.hockeyMask(0xFFFFFF);
+    gfx.hockeyMask(colors.white);
     gfx.restore();
 
     gfx.push(86 << fbits, (8 + 24) << fbits, -0.01);
-    gfx.bar(hero_hp, hero_hp_max, 0xFF0000);
+    gfx.bar(hero_hp, hero_hp_max, colors.blood_light);
     gfx.restore();
 
     gfx.push(86 << fbits, (8 + 34) << fbits, -0.005);
-    gfx.bar(hero_xp, hero_xp_max, 0x339933);
+    gfx.bar(hero_xp, hero_xp_max, colors.green_light);
     gfx.restore();
 
     for (0..13) |i| {
@@ -1169,15 +1176,15 @@ fn drawHUD() void {
         const mat = gain.gfx.state.matrix;
         gain.gfx.state.matrix = gain.gfx.state.matrix.rotate(0.1); // * @as(f32, @floatFromInt(i / 3)));
         if (i < kills) {
-            gfx.colorRGB(0x800000);
+            gfx.colorRGB(colors.blood_dark);
             rc = rc.expandInt(8);
             gfx.line(rc.x, rc.y, rc.r(), rc.b(), 4 << fbits, 2 << fbits);
             gfx.line(rc.x, rc.b(), rc.r(), rc.y, 3 << fbits, 4 << fbits);
         }
         //gfx.state.matrix = gfx.state.matrix.rotate(0.1);
-        gfx.colorRGB(0xCCCCCC);
+        gfx.colorRGB(colors.paper);
         gfx.rect_(rc.expandInt(10));
-        gfx.colorRGB(0x111111);
+        gfx.colorRGB(colors.black);
         gfx.rect_(rc.expandInt(12).translate(1 << fbits, 1 << fbits));
 
         gain.gfx.state.matrix = mat;
@@ -1189,10 +1196,10 @@ fn drawMap() void {
     const _cy = camera.rc.y >> cell_size_bits;
     const _cw = camera.rc.w >> cell_size_bits;
     const _ch = camera.rc.h >> cell_size_bits;
-    const ccx0: usize = @intCast(@max(0, _cx));
-    const ccx1: usize = @intCast(@max(0, _cx + _cw + 2));
-    const ccy0: usize = @intCast(@max(0, _cy));
-    const ccy1: usize = @intCast(@max(0, _cy + _ch + 2));
+    const ccx0: usize = @intCast(@min(map.size - 1, @max(0, _cx)));
+    const ccx1: usize = @intCast(@min(map.size - 1, @max(0, _cx + _cw + 2)));
+    const ccy0: usize = @intCast(@min(map.size - 1, @max(0, _cy)));
+    const ccy1: usize = @intCast(@min(map.size - 1, @max(0, _cy + _ch + 2)));
 
     //drawPath();
 
@@ -1213,43 +1220,41 @@ fn drawMap() void {
                 // gfx.quad(Vec2.fromIntegers(-sz, -sz), cell_size_v, 0xFF338866);
 
                 var color = colors.tile[map.colors[map.addr(cx, cy)]];
+                if (map.map[index + cx - map.size] == 0) {
+                    gfx.colorRGB(Color32.lerp8888b(color, 0x0, 128));
+                    gfx.rect_(FPRect.init(x - cell_size_half, y - cell_size, cell_size, cell_size_half));
+                }
                 if (cell > 1) {
-                    color = Color32.lerp8888b(color, 0x0, 32);
+                    color = Color32.lerp8888b(color, 0x0, 64);
                 }
                 gfx.colorRGB(color);
                 gfx.rect_(FPRect.init(x, y, 0, 0).expand(cell_size_half, cell_size_half));
 
-                if (map.map[index + cx - map.size] == 0) {
-                    gfx.colorRGB(0x223322);
-                    gfx.rect_(FPRect.init(x, y - cell_size_half, 0, 0).expand(cell_size_half, cell_size_half));
-                }
-
                 if (cell > 1) {
                     gfx.depth(x, y + cell_size_half);
                     if (cell == 2) {
+                        gfx.colorRGB(colors.wood_dark);
                         for (0..2) |iy| {
                             const iiy: i32 = @intCast(iy);
-                            gfx.colorRGB(0x664433);
                             gfx.quad_(x - cell_size_half, y + (iiy * cell_size_half >> 1), cell_size, 4 << fbits);
                         }
                         for (0..5) |ix| {
                             const iix: i32 = @intCast(ix);
-                            gfx.colorRGB(0x664433);
                             gfx.quad_(x - cell_size_half + (iix * cell_size >> 2), y, 2 << fbits, cell_size_half);
                         }
                     } else if (cell == 3) {
                         const ss = gain.math.sintau(fp32.toFloat(@bitCast(app.tic +% (cx * cy))) / 8) / 100.0;
                         gfx.depth(x, y + (cell_size_half >> 1));
-                        gfx.colorRGB(0x336633);
+                        gfx.colorRGB(colors.green_dark);
                         gfx.push(x, y + (8 << fbits), ss);
                         gfx.circle(0, -(24 << fbits), 16 << fbits, 16 << fbits, 8);
-                        gfx.colorRGB(0x664400);
+                        gfx.colorRGB(colors.wood_dark);
                         gfx.quad_(-(2 << fbits), -cell_size_half, 4 << fbits, cell_size_half);
                         gfx.restore();
                     } else if (cell == 4) {
                         // const ss: f32 = 0.1 * gain.math.sintau(fp32.toFloat(@bitCast(app.tic +% (cx * cy))) / 8);
                         gfx.push(x, y + (8 << fbits), 0);
-                        gfx.colorRGB(0x336633);
+                        gfx.colorRGB(colors.green_dark);
                         gfx.circle(0, -4 << fbits, 10 << fbits, 12 << fbits, 8);
                         gfx.circle(-8 << fbits, 0, 8 << fbits, 8 << fbits, 8);
                         gfx.circle(8 << fbits, 0, 8 << fbits, 8 << fbits, 8);
@@ -1266,33 +1271,33 @@ fn drawMap() void {
     }
 }
 
-fn drawMiniMap() void {
-    //gain.gfx.state.matrix = Mat2d.identity();
-    gain.gfx.state.z = (1 << 15) << fbits;
-    for (0..map.size) |cy| {
-        const index = cy << map.size_bits;
-        for (0..map.size) |cx| {
-            const cell = map.map[index + cx];
-            const rc = FPRect.fromInt(@bitCast(cx), @bitCast(cy), 1, 1).translate(hero.x, hero.y);
-            var color: u32 = 0xFF000000;
-            if (cell != 0) {
-                color = map.colormap[map.colors[map.addr(cx, cy)]];
-                if (cell > 1) {
-                    color = Color32.lerp8888b(color, 0xFF000000, 16);
-                }
-            }
-            gfx.rect(rc, color);
-        }
-    }
-}
+// fn drawMiniMap() void {
+//     //gain.gfx.state.matrix = Mat2d.identity();
+//     gain.gfx.state.z = (1 << 15) << fbits;
+//     for (0..map.size) |cy| {
+//         const index = cy << map.size_bits;
+//         for (0..map.size) |cx| {
+//             const cell = map.map[index + cx];
+//             const rc = FPRect.fromInt(@bitCast(cx), @bitCast(cy), 1, 1).translate(hero.x, hero.y);
+//             var color: u32 = 0xFF000000;
+//             if (cell != 0) {
+//                 color = map.colormap[map.colors[map.addr(cx, cy)]];
+//                 if (cell > 1) {
+//                     color = Color32.lerp8888b(color, 0xFF000000, 16);
+//                 }
+//             }
+//             gfx.rect(rc, color);
+//         }
+//     }
+// }
 
-fn drawPath() void {
-    const rc = FPRect.init(cell_size_half, cell_size_half, 0, 0).expandInt(4);
-    for (0..map.path_num) |i| {
-        gfx.rect(rc.translate(map.path_x[i] << cell_size_bits, map.path_y[i] << cell_size_bits), if (map.path_num > 0) 0xFFFFFFFF else 0xFFFFFF00);
-    }
-    gfx.rect(rc.translate(map.path_dest_x << cell_size_bits, map.path_dest_y << cell_size_bits), 0xFFFF0000);
-}
+// fn drawPath() void {
+//     const rc = FPRect.init(cell_size_half, cell_size_half, 0, 0).expandInt(4);
+//     for (0..map.path_num) |i| {
+//         gfx.rect(rc.translate(map.path_x[i] << cell_size_bits, map.path_y[i] << cell_size_bits), if (map.path_num > 0) 0xFFFFFFFF else 0xFFFFFF00);
+//     }
+//     gfx.rect(rc.translate(map.path_dest_x << cell_size_bits, map.path_dest_y << cell_size_bits), 0xFFFF0000);
+// }
 
 fn drawBack() void {
     if (true) {
@@ -1301,6 +1306,7 @@ fn drawBack() void {
         gain.gfx.state.z = 2 << fbits;
         const tile_size = 64 << fbits;
         var cy = camera.rc.y;
+        gfx.colorRGB(colors.star);
         while (cy < camera.rc.b() + tile_size) {
             var cx = camera.rc.x;
             while (cx < camera.rc.r() + tile_size) {
@@ -1312,20 +1318,19 @@ fn drawBack() void {
                 while (n != 0) {
                     const dx = rnd.int(-32 << fbits, 32 << fbits);
                     const dy = rnd.int(-32 << fbits, 32 << fbits);
-                    const a = (rnd.float() - 0.5) / 16.0;
+                    // const a = (rnd.float() - 0.5) / 16.0;
                     const t = fp32.toFloat(dx - dy + @as(i32, @bitCast(app.tic))) / 2;
-                    const t2 = fp32.toFloat(dx + dy - @as(i32, @bitCast(app.tic))) / 4;
-                    const fx = fp32.fromFloat(gain.math.costau(t) * 2);
-                    const fy = fp32.fromFloat(gain.math.sintau(t));
-                    const size = rnd.int(1 << fbits, 3 << fbits);
-                    if (gain.math.sintau(t2) > 0.5) {
-                        gfx.push(x + dx + fx, y + dy + fy, a);
-                        gfx.color(0xFF666666);
-                        gfx.circle(0, 0, size, size, 8);
-                        gfx.color(0xFF000000);
-                        gfx.circle(0, 0, size * 3, size, 6);
-                        gfx.restore();
-                    }
+                    //const t2 = fp32.toFloat(dx + dy - @as(i32, @bitCast(app.tic))) / 4;
+                    //const fx = 0; //fp32.fromFloat(gain.math.costau(t) * 2);
+                    const fy = @abs(gain.math.sintau(t / 8));
+                    const size = fp32.scale(1 << fbits, fy);
+                    // if (gain.math.sintau(t2) > 0.5) {
+                    //gfx.push(x + dx, y + dy, a);
+                    gfx.circle(x + dx, y + dy, size, size, 4);
+                    // gfx.color(0xFF000000);
+                    // gfx.circle(0, 0, size * 3, size, 6);
+                    //gfx.restore();
+                    // }
                     n -= 1;
                 }
                 cx += 64 << fbits;
@@ -1334,10 +1339,8 @@ fn drawBack() void {
         }
     }
 
-    //gain.gfx.state.z = 1 << fbits;
-    gfx.colorRGB(0x222222);
-    //gfx.rect(camera.rc, 0xFF222222);
     gain.gfx.state.z = 0;
+    gfx.colorRGB(colors.cosmos);
     gfx.rect_(camera.rc.expandInt(128 << fbits));
 }
 
