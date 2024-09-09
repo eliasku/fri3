@@ -62,11 +62,11 @@ pub fn beginFrame() void {
     state.buffer_handle_frame_counter +%= 1;
 }
 
-pub fn endFrame() void {
+pub inline fn endFrame() void {
     flush();
 }
 
-pub fn requireTriangles(vertices: u32, indices: u32) void {
+pub noinline fn requireTriangles(vertices: u32, indices: u32) void {
     if (state.vertex + vertices >= vertices_max or state.index + indices >= indices_max) {
         flush();
     }

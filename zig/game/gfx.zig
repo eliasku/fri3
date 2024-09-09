@@ -6,6 +6,7 @@ const gfx = gain.gfx;
 const Vec2 = gain.math.Vec2;
 const fbits = fp32.fbits;
 const Color32 = gain.math.Color32;
+const colors = @import("colors.zig");
 
 pub fn quad_(x: i32, y: i32, w: i32, h: i32) void {
     gfx.requireTriangles(4, 6);
@@ -14,6 +15,15 @@ pub fn quad_(x: i32, y: i32, w: i32, h: i32) void {
     vertex(x + w, y);
     vertex(x + w, y + h);
     vertex(x, y + h);
+}
+
+pub fn romb(x: i32, y: i32, r: i32) void {
+    gfx.requireTriangles(4, 6);
+    gfx.addQuadIndices();
+    vertex(x, y - r);
+    vertex(x + r, y);
+    vertex(x, y + r);
+    vertex(x - r, y);
 }
 
 pub inline fn rect_(rc: FPRect) void {
@@ -80,14 +90,14 @@ pub fn guardWeapon(dist: i32) void {
 
 pub fn hockeyMask(co: u32) void {
     colorRGB(0x0);
-    circle(-3 << fbits, -3 << fbits, 1 << fbits, 1 << fbits, 4);
-    circle(3 << fbits, 3 << fbits, 1 << fbits, 1 << fbits, 4);
-    circle(-3 << fbits, 3 << fbits, 1 << fbits, 1 << fbits, 4);
-    circle(3 << fbits, -3 << fbits, 1 << fbits, 1 << fbits, 4);
-    circle((-2 << fbits), 0, 1 << fbits, 1 << fbits, 4);
-    circle((2 << fbits), 0, 1 << fbits, 1 << fbits, 4);
-    circle(0, (-2 << fbits), 1 << fbits, 1 << fbits, 4);
-    circle(0, (2 << fbits), 1 << fbits, 1 << fbits, 4);
+    romb(-3 << fbits, -3 << fbits, 1 << fbits);
+    romb(3 << fbits, 3 << fbits, 1 << fbits);
+    romb(-3 << fbits, 3 << fbits, 1 << fbits);
+    romb(3 << fbits, -3 << fbits, 1 << fbits);
+    romb((-2 << fbits), 0, 1 << fbits);
+    romb((2 << fbits), 0, 1 << fbits);
+    romb(0, (-2 << fbits), 1 << fbits);
+    romb(0, (2 << fbits), 1 << fbits);
     colorRGB(co);
     circle(0, 0, 6 << fbits, 7 << fbits, 10);
 }
@@ -198,7 +208,6 @@ pub fn bar(val: i32, max: i32, c: u32) void {
 }
 
 pub fn attackCircle(x: i32, y: i32, t: i32) void {
-    depth(x, y);
-    color(Color32.lerp8888b(0x00000000, 0xFFFFFFFF, @bitCast(t << 1)));
+    color(Color32.lerp8888b(0x00000000, 0xFFFFFFFF, @bitCast(t << 2)));
     circle(x, y, 24 << fbits, 16 << fbits, 32);
 }

@@ -903,19 +903,18 @@ fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: i32, body_color: 
                 gfx.colorRGB(cloth_color);
                 gfx.push(x + (hero_w >> 1), y + (14 << fbits) - hero_y_off, 0);
                 if (dy >= 0) {
-                    gfx.circle(-3 << fbits, 0, 3 << fbits, 2 << fbits, 4);
-                    gfx.circle(3 << fbits, 0, 3 << fbits, 2 << fbits, 4);
-                } else {
-                    gfx.line(-5 << fbits, 0, 5 << fbits, 0, 1 << fbits, 1 << fbits);
+                    gfx.romb(-3 << fbits, 0, 2 << fbits);
+                    gfx.romb(3 << fbits, 0, 2 << fbits);
                 }
+                gfx.line(-5 << fbits, 0, 5 << fbits, 0, 1 << fbits, 1 << fbits);
                 gfx.restore();
             } else {
                 if (dy >= 0) {
                     // draw NIPPLES
                     gfx.push(x + (hero_w >> 1), y + (14 << fbits) - hero_y_off, 0);
                     gfx.colorRGB(Color32.lerp8888b(body_color, 0, 0x20));
-                    gfx.circle(-3 << fbits, 0, 1 << fbits, 1 << fbits, 4);
-                    gfx.circle(3 << fbits, 0, 1 << fbits, 1 << fbits, 4);
+                    gfx.romb(-3 << fbits, 0, 1 << fbits);
+                    gfx.romb(3 << fbits, 0, 1 << fbits);
                     gfx.restore();
                 }
             }
@@ -941,8 +940,9 @@ fn drawTempMan(px: i32, py: i32, dx: i32, dy: i32, move_timer: i32, body_color: 
         gfx.trouses();
         gfx.restore();
     }
+
     gfx.colorRGB(body_color);
-    gfx.quad_(x, y - hero_y_off + (8 << fbits), hero_w, hero_h - hero_y_off - (2 << fbits) - (8 << fbits));
+    gfx.quad_(x, y - hero_y_off + (9 << fbits), hero_w, hero_h - hero_y_off - (2 << fbits) - (9 << fbits));
 
     gfx.quad_(x - (2 << fbits), y + (10 << fbits) - hero_y_off, 2 << fbits, 8 << fbits);
     gfx.quad_(x + hero_w, y + (10 << fbits) - hero_y_off, 2 << fbits, 8 << fbits);
@@ -1106,21 +1106,8 @@ pub fn render() void {
 
     gain.gfx.setupBlendPass();
 
-    // attack circles
-    if (hero_hp != 0 and hero_attack_t > 15) {
-        gfx.attackCircle(hero.x, hero.y, hero_attack_t);
-    }
-
-    for (0..mobs_num) |i| {
-        const mob = mobs[i];
-        if (mob.hp != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
-            if (mob.attack_t > 15) {
-                gfx.attackCircle(mob.x, mob.y, mob.attack_t);
-            }
-        }
-    }
-
     gain.gfx.state.z = 4 << fbits;
+
     if (hero_hp != 0) {
         drawManShadow(hero.x, hero.y, hero_move_timer);
         if (g.is_debug) {
@@ -1148,6 +1135,20 @@ pub fn render() void {
         const item = items[i];
         if (item.kind != 0 and item_aabb.translate(item.x, item.y).overlaps(camera.rc)) {
             gfx.shadow(item.x, item.y, 8 << fbits);
+        }
+    }
+
+    // attack circles
+    if (hero_hp != 0 and hero_attack_t > 15) {
+        gfx.attackCircle(hero.x, hero.y, hero_attack_t);
+    }
+
+    for (0..mobs_num) |i| {
+        const mob = mobs[i];
+        if (mob.hp != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
+            if (mob.attack_t > 15) {
+                gfx.attackCircle(mob.x, mob.y, mob.attack_t);
+            }
         }
     }
 
@@ -1310,8 +1311,6 @@ fn drawMap() void {
 
 fn drawBack() void {
     if (true) {
-        // 11631
-        // 11457
         gain.gfx.state.z = 2 << fbits;
         const tile_size = 64 << fbits;
         var cy = camera.rc.y;
@@ -1327,19 +1326,10 @@ fn drawBack() void {
                 while (n != 0) {
                     const dx = rnd.int(-32 << fbits, 32 << fbits);
                     const dy = rnd.int(-32 << fbits, 32 << fbits);
-                    // const a = (rnd.float() - 0.5) / 16.0;
                     const t = fp32.toFloat(dx - dy + @as(i32, @bitCast(app.tic))) / 2;
-                    //const t2 = fp32.toFloat(dx + dy - @as(i32, @bitCast(app.tic))) / 4;
-                    //const fx = 0; //fp32.fromFloat(gain.math.costau(t) * 2);
                     const fy = @abs(gain.math.sintau(t / 8));
                     const size = fp32.scale(1 << fbits, fy);
-                    // if (gain.math.sintau(t2) > 0.5) {
-                    //gfx.push(x + dx, y + dy, a);
-                    gfx.circle(x + dx, y + dy, size, size, 4);
-                    // gfx.color(0xFF000000);
-                    // gfx.circle(0, 0, size * 3, size, 6);
-                    //gfx.restore();
-                    // }
+                    gfx.romb(x + dx, y + dy, size);
                     n -= 1;
                 }
                 cx += 64 << fbits;
