@@ -49,4 +49,6 @@ Unrestricted
 
 ## 9 sep
 12470 - colors, particles+, background stars, body part, 
-12487 - frames drop
+12481 - frames drop
+
+12466 - opt mob kind, gfx attack circle

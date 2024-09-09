@@ -196,3 +196,9 @@ pub fn bar(val: i32, max: i32, c: u32) void {
     colorRGB(0x0);
     rect_(FPRect.fromInt(-hw, -4, 4 + max * 4, 8));
 }
+
+pub fn attackCircle(x: i32, y: i32, t: i32) void {
+    depth(x, y);
+    color(Color32.lerp8888b(0x00000000, 0xFFFFFFFF, @bitCast(t << 1)));
+    circle(x, y, 24 << fbits, 16 << fbits, 32);
+}

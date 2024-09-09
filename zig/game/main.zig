@@ -121,7 +121,7 @@ const hit_timer_max = 31;
 const Mob = struct {
     x: i32,
     y: i32,
-    kind: i32,
+    kind: u8,
     move_timer: i32,
     lx: i32,
     ly: i32,
@@ -133,22 +133,22 @@ const Mob = struct {
     target_map_x: i32,
     target_map_y: i32,
     danger_t: i32,
-    danger: bool,
     attention: u32,
     text_t: u32,
     text_i: u32,
+    attack_t: i32,
+    danger: bool,
     male: bool,
     is_student: bool,
-    attack_t: i32,
 };
 
-fn placeMob(x: i32, y: i32, kind: i32, male: bool, student: bool) void {
+fn placeMob(x: i32, y: i32, kind: u32, male: bool, student: bool) void {
     if (mobs_num < mobs_max) {
         const max_hp: i32 = if (student) student_hp_max else guard_hp_max;
         mobs[mobs_num] = .{
             .x = cell_size_half + (x << cell_size_bits),
             .y = cell_size_half + (y << cell_size_bits),
-            .kind = kind,
+            .kind = @truncate(kind),
             .move_timer = 0,
             .lx = 0,
             .ly = 0,
@@ -248,7 +248,7 @@ fn initLevel() void {
     hero_forced = ForcedMove.zero();
 
     var gender_i: u32 = 0;
-    var mob_kind_i: i32 = 0;
+    var mob_kind_i: u8 = 0;
     //const rooms_count: u8 = 6;
     var room_index: u32 = 0;
     var students_total: i32 = 0;
@@ -297,16 +297,16 @@ fn initLevel() void {
                     const pp = rnd.next() & 7;
                     switch (pp) {
                         0 => if (mobs_gen > 0) {
-                            placeMob(x, y, @mod(mob_kind_i, 3) + 1, gender_i & 1 == 1, true);
+                            placeMob(x, y, mob_kind_i % 3, gender_i & 1 == 0, true);
                             gender_i += 1;
                             mobs_gen -= 1;
-                            mob_kind_i += 1;
+                            mob_kind_i +%= 1;
                             students_total += 1;
                         },
                         1 => if (guards_gen > 0) {
-                            placeMob(x, y, @mod(mob_kind_i, 3) + 1, rnd.next() & 1 == 1, false);
+                            placeMob(x, y, mob_kind_i % 3, false, false);
                             guards_gen -= 1;
-                            mob_kind_i += 1;
+                            mob_kind_i +%= 1;
                         },
                         2 => if (portals_num > 2 and portals_gen > 0) {
                             const p = portals[portals_num - 1];
@@ -382,7 +382,7 @@ fn updateMobs() void {
     const hero_aabb = hero_ground_aabb_local.translate(hero.x, hero.y).expandInt(16);
     for (0..mobs_num) |i| {
         const mob: *Mob = &mobs[i];
-        if (mob.kind != 0) {
+        if (mob.hp != 0) {
             const hero_is_danger = hero_visible > hero_visible_thr and hero_ready;
             const dist_to_hero = fp32.dist(hero.x, hero.y, mob.x, mob.y);
             const danger = hero_is_danger and dist_to_hero < (100 << fbits);
@@ -538,13 +538,13 @@ fn updateMobs() void {
                         const ky = mob_aabb.cy();
                         particles.add(32, kx, ky, 20 << fbits);
 
-                        if (mob.hp <= 0) {
+                        if (mob.hp == 0) {
                             camera.shakeM();
                             var c = getMobColor(mob.kind);
                             var rc = FPRect.init(0, 0, 0, 4 << fbits).expandInt(5);
                             particles.addPart(kx, ky, c, 1, rc);
                             if (!mob.is_student) {
-                                c = colors.guards[@intCast(mob.kind - 1)];
+                                c = colors.guards[mob.kind];
                             }
                             rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
                             particles.addPart(kx, ky, c, 0, rc);
@@ -553,7 +553,6 @@ fn updateMobs() void {
                             particles.addPart(kx, ky, c, 0, rc);
                             particles.addPart(kx, ky, c, 0, FPRect.init(0, 0, 0, 0).expandInt(5));
 
-                            mob.*.kind = 0;
                             clearMobText(i);
 
                             if (mob.is_student) {
@@ -1004,12 +1003,12 @@ fn drawItem(i: usize) void {
     gfx.restore();
 }
 
-fn getMobColor(kind: i32) u32 {
-    return colors.mob[@intCast(kind - 1)];
+fn getMobColor(kind: u8) u32 {
+    return colors.mob[kind];
 }
 
-fn getMobTrousesColor(kind: i32) u32 {
-    return colors.mob_trouses[@intCast(kind - 1)];
+fn getMobTrousesColor(kind: u8) u32 {
+    return colors.mob_trouses[kind];
 }
 
 fn drawMob(i: usize) void {
@@ -1042,7 +1041,7 @@ fn drawMob(i: usize) void {
     var head_color = getMobColor(mob.kind);
     var body_color = head_color;
     if (!mob.is_student) {
-        body_color = colors.guards[@intCast(mob.kind - 1)];
+        body_color = colors.guards[mob.kind];
     }
     head_color = Color32.lerp8888b(head_color, 0xFFFFFF, mob.hit_timer << 3);
     body_color = Color32.lerp8888b(body_color, 0xFFFFFF, mob.hit_timer << 3);
@@ -1094,7 +1093,7 @@ pub fn render() void {
 
     for (0..mobs_num) |i| {
         const mob = mobs[i];
-        if (mob.kind != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
+        if (mob.hp != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
             drawMob(i);
         }
     }
@@ -1105,19 +1104,16 @@ pub fn render() void {
 
     gain.gfx.setupBlendPass();
 
+    // attack circles
     if (hero_hp != 0 and hero_attack_t > 15) {
-        gfx.depth(hero.x, hero.y);
-        gfx.color(Color32.lerp8888b(0x00000000, 0xFFFFFFFF, @bitCast(hero_attack_t)));
-        gfx.circle(hero.x, hero.y, 24 << fbits, 16 << fbits, 32);
+        gfx.attackCircle(hero.x, hero.y, hero_attack_t);
     }
 
     for (0..mobs_num) |i| {
         const mob = mobs[i];
-        if (mob.kind != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
-            if (mob.attack_t > 8) {
-                gfx.depth(mob.x, mob.y);
-                gfx.color(Color32.lerp8888b(0x00000000, 0xFFFFFFFF, @bitCast(mob.attack_t)));
-                gfx.circle(mob.x, mob.y, 24 << fbits, 16 << fbits, 32);
+        if (mob.hp != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
+            if (mob.attack_t > 15) {
+                gfx.attackCircle(mob.x, mob.y, mob.attack_t);
             }
         }
     }
@@ -1130,7 +1126,7 @@ pub fn render() void {
 
     for (0..mobs_num) |i| {
         const mob = mobs[i];
-        if (mob.kind != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
+        if (mob.hp != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
             drawManShadow(mob.x, mob.y, mob.move_timer);
         }
     }
@@ -1381,7 +1377,7 @@ fn updateGameState() void {
                     for (4..16) |cx| {
                         setMapPlus(@bitCast(cx), @bitCast(cy), @intCast(g.rnd.int(1, 8)));
                         if (g.rnd.next() & 0x7 == 0) {
-                            placeMob(@bitCast(cx), @bitCast(cy), g.rnd.int(1, 3), g.rnd.next() & 1 == 0, true);
+                            placeMob(@bitCast(cx), @bitCast(cy), g.rnd.next() % 3, g.rnd.next() & 1 == 0, true);
                         }
                     }
                 }
