@@ -547,11 +547,11 @@ fn updateMobs() void {
                                 c = colors.guards[mob.kind];
                             }
                             rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
-                            particles.addPart(kx, ky, c, 0, rc);
-                            particles.addPart(kx, ky, c, 0, rc);
-                            particles.addPart(kx, ky, c, 0, rc);
-                            particles.addPart(kx, ky, c, 0, rc);
-                            particles.addPart(kx, ky, c, 0, FPRect.init(0, 0, 0, 0).expandInt(5));
+                            particles.addPart(kx, ky, c, 4, rc);
+                            particles.addPart(kx, ky, c, 4, rc);
+                            particles.addPart(kx, ky, c, 4, rc);
+                            particles.addPart(kx, ky, c, 4, rc);
+                            particles.addPart(kx, ky, c, 4, FPRect.init(0, 0, 0, 0).expandInt(5));
 
                             clearMobText(i);
 
@@ -597,11 +597,11 @@ fn hitHero() void {
         particles.addPart(kx, ky, colors.hero_face_color, 2, rc);
         particles.addPart(kx, ky, colors.hero_face_color, 3, rc);
         rc = FPRect.init(0, 0, 0, 0).expand(2 << fbits, 5 << fbits);
-        particles.addPart(kx, ky, colors.hero_body_color, 0, rc);
-        particles.addPart(kx, ky, colors.hero_body_color, 0, rc);
-        particles.addPart(kx, ky, colors.hero_body_color, 0, rc);
-        particles.addPart(kx, ky, colors.hero_body_color, 0, rc);
-        particles.addPart(kx, ky, colors.hero_body_color, 0, FPRect.init(0, 0, 0, 0).expandInt(5));
+        particles.addPart(kx, ky, colors.hero_body_color, 4, rc);
+        particles.addPart(kx, ky, colors.hero_body_color, 4, rc);
+        particles.addPart(kx, ky, colors.hero_body_color, 4, rc);
+        particles.addPart(kx, ky, colors.hero_body_color, 4, rc);
+        particles.addPart(kx, ky, colors.hero_body_color, 4, FPRect.init(0, 0, 0, 0).expandInt(5));
         unsetText(0);
     } else {
         camera.shakeS();
@@ -1121,6 +1121,13 @@ pub fn render() void {
     gain.gfx.state.z = 4 << fbits;
     if (hero_hp != 0) {
         drawManShadow(hero.x, hero.y, hero_move_timer);
+        if (g.is_debug) {
+            gfx.color(0x77FF00FF);
+            gfx.rect_(hero_ground_aabb_local.translate(hero.x, hero.y));
+
+            gfx.color(0x77FF0000);
+            gfx.rect_(hero_ground_aabb_local.translate(hero.x, hero.y).expandInt(16));
+        }
     }
     particles.drawShadows();
 
@@ -1128,6 +1135,10 @@ pub fn render() void {
         const mob = mobs[i];
         if (mob.hp != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
             drawManShadow(mob.x, mob.y, mob.move_timer);
+            if (g.is_debug) {
+                gfx.color(0x77FF00FF);
+                gfx.rect_(mob_hitbox_local.translate(mob.x, mob.y));
+            }
         }
     }
 
