@@ -219,8 +219,7 @@ fn setMapPlus(x: i32, y: i32, kind: map.Cell) void {
     map.set(x, y + 1, kind);
 }
 
-fn initLevel() void {
-    var rnd = gain.math.Rnd{ .seed = (31 + level << 1) };
+fn resetAll() void {
     @memset(&map.map, 0);
     @memset(&map.colors, 0);
     items_num = 0;
@@ -229,14 +228,7 @@ fn initLevel() void {
     kills = 0;
     particles.reset();
     unsetAllTexts();
-    var x: i32 = map.size >> 1;
-    var y: i32 = map.size >> 1;
-    var room_x = x;
-    var room_y = y;
-    var act: u32 = 0;
-    var act_timer: u32 = 4;
-    hero.x = (x << cell_size_bits) + cell_size_half;
-    hero.y = (y << cell_size_bits) + cell_size_half;
+    level_started = true;
     hero_visible = 0;
     hero_hp = hero_hp_max;
     hero_xp = 0;
@@ -246,6 +238,20 @@ fn initLevel() void {
     hero_ready = false;
     hero_attack_t = 0;
     hero_forced = ForcedMove.zero();
+}
+
+fn initLevel() void {
+    resetAll();
+
+    var rnd = gain.math.Rnd{ .seed = (31 + level << 1) };
+    var x: i32 = map.size >> 1;
+    var y: i32 = map.size >> 1;
+    var room_x = x;
+    var room_y = y;
+    var act: u32 = 0;
+    var act_timer: u32 = 4;
+    hero.x = (x << cell_size_bits) + cell_size_half;
+    hero.y = (y << cell_size_bits) + cell_size_half;
 
     var gender_i: u32 = 0;
     var mob_kind_i: u8 = 0;
@@ -338,14 +344,10 @@ fn initLevel() void {
     addPortal(x, y, hero.x >> cell_size_bits, hero.y >> cell_size_bits, room_x, room_y);
 
     for (&map.map) |*cell| {
-        if (cell.* == 1) {
-            if (rnd.next() & 7 == 0) {
-                cell.* = @truncate(1 + (rnd.next() & 3));
-            }
+        if (cell.* == 1 and rnd.next() & 7 == 0) {
+            cell.* = @truncate(1 + (rnd.next() & 3));
         }
     }
-
-    level_started = true;
 }
 
 fn mobSetMove(mob: *Mob, dx: i32, dy: i32, speed: i32) void {
