@@ -345,7 +345,7 @@ fn initLevel() void {
 
     for (&map.map) |*cell| {
         if (cell.* == 1 and rnd.next() & 7 == 0) {
-            cell.* = @truncate(1 + (rnd.next() & 3));
+            cell.* = @intCast(rnd.int(2, 4));
         }
     }
 }
