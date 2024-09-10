@@ -56,3 +56,6 @@ Unrestricted
 12389 - unify particles + body parts
 12333 - disable cheats
 12330 - rombs, attack circle to the ground depth
+
+# 10 sep
+12328 - make text colors and fix guard with invisible hero

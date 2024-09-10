@@ -36,14 +36,14 @@ pub inline fn depth(x: i32, y: i32) void {
 }
 
 pub fn attention() void {
-    colorRGB(0x000000);
+    colorRGB(colors.black);
     circle(0, 0, 2 << fbits, 2 << fbits, 8);
-    colorRGB(0xFFFFFF);
+    colorRGB(colors.star);
     circle(0, 0, 6 << fbits, 2 << fbits, 6);
 }
 
 pub fn scream() void {
-    colorRGB(0x000000);
+    colorRGB(colors.black);
     line((2 << fp32.fbits), (-2 << fp32.fbits), (8 << fp32.fbits), (-8 << fp32.fbits), 0, 2 << fp32.fbits);
     line((2 << fp32.fbits), (0 << fp32.fbits), (10 << fp32.fbits), (-4 << fp32.fbits), 0, 2 << fp32.fbits);
     line((0 << fp32.fbits), (-2 << fp32.fbits), (4 << fp32.fbits), (-10 << fp32.fbits), 0, 2 << fp32.fbits);
@@ -67,7 +67,7 @@ pub fn cross(rc: FPRect) void {
 
 pub fn deadHead(skin_color: u32) void {
     const eye = FPRect.fromInt(-1, -2, 2, 4);
-    colorRGB(0x0);
+    colorRGB(colors.black);
     cross(eye.translate(-(2 << fbits), 0));
     cross(eye.translate((2 << fbits), 0));
     colorRGB(skin_color);
@@ -89,7 +89,7 @@ pub fn guardWeapon(dist: i32) void {
 }
 
 pub fn hockeyMask(co: u32) void {
-    colorRGB(0x0);
+    colorRGB(colors.black);
     romb(-3 << fbits, -3 << fbits, 1 << fbits);
     romb(3 << fbits, 3 << fbits, 1 << fbits);
     romb(-3 << fbits, 3 << fbits, 1 << fbits);
@@ -125,7 +125,7 @@ pub fn trouses() void {
 }
 
 pub fn shadow(x: i32, y: i32, sz: i32) void {
-    color(0x40000000);
+    color(colors.shadow);
     circle(x, y, sz, sz >> 1, 8);
 }
 
@@ -190,11 +190,11 @@ pub noinline fn line(x0: i32, y0: i32, x1: i32, y1: i32, w1: i32, w2: i32) void 
 }
 
 pub fn banner13() void {
-    line(-2 << fbits, -4 << fbits, -2 << fbits, 4 << fbits, 1 << fbits, 1 << fbits);
+    line(-2 << fbits, -4 << fbits, -2 << fbits, 4 << fbits, 1 << fbits, 0 << fbits);
     line(0 << fbits, -4 << fbits, 2 << fbits, -4 << fbits, 1 << fbits, 1 << fbits);
     line(2 << fbits, -4 << fbits, 0 << fbits, 0 << fbits, 1 << fbits, 1 << fbits);
     line(0 << fbits, 0 << fbits, 2 << fbits, 0 << fbits, 1 << fbits, 1 << fbits);
-    line(2 << fbits, 0 << fbits, 0 << fbits, 4 << fbits, 1 << fbits, 1 << fbits);
+    line(2 << fbits, 0 << fbits, 0 << fbits, 4 << fbits, 1 << fbits, 0 << fbits);
 }
 
 pub fn bar(val: i32, max: i32, c: u32) void {
@@ -203,7 +203,7 @@ pub fn bar(val: i32, max: i32, c: u32) void {
     rect_(FPRect.fromInt(-hw + 2, -2, val * 4, 4));
     colorRGB(Color32.lerp8888b(0x0, c, 0x40));
     rect_(FPRect.fromInt(-hw + 2, -2, max * 4, 4));
-    colorRGB(0x0);
+    colorRGB(colors.black);
     rect_(FPRect.fromInt(-hw, -4, 4 + max * 4, 8));
 }
 

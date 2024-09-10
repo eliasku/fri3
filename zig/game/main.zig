@@ -394,7 +394,7 @@ fn updateMobs() void {
                     mob.*.danger = true;
                 }
             } else {
-                if (mob.*.danger_t > 0 or hero_hp <= 0) {
+                if (mob.*.danger_t > 0 or hero_hp <= 0 or (!mob.is_student and !hero_is_danger)) {
                     mob.*.danger = false;
                 }
                 if (mob.attention > 0) {
@@ -503,7 +503,7 @@ fn updateMobs() void {
                     if (mob.*.text_t == 0) {
                         clearMobText(i);
                     } else {
-                        setText(@bitCast(i + 1), texts.mob[mob.text_i], FPVec2.init(mob.x, mob.y - (48 << fbits)), 0xFFFFFF, 2);
+                        setText(@bitCast(i + 1), texts.mob[mob.text_i], FPVec2.init(mob.x, mob.y - (48 << fbits)), colors.paper, 2);
                     }
                 } else {
                     if (g.rnd.next() & 63 == 0) {
@@ -825,7 +825,7 @@ pub fn update() void {
     if (hero_visible > 8 and game_state == 1 and hero_hp != 0) {
         if (hero_text_t > 0) {
             const msg = texts.hero[hero_text_i];
-            setText(0, msg, FPVec2.init(hero.x, hero.y - (48 << fbits)), 0xFF0000, 2);
+            setText(0, msg, FPVec2.init(hero.x, hero.y - (48 << fbits)), colors.blood_light, 2);
             hero_text_t -= 1;
         } else {
             unsetText(0);
@@ -1036,7 +1036,7 @@ fn drawMob(i: usize) void {
 
     if (mob.hp != mob.hp_max) {
         gfx.push(x, y - (32 << fbits), 0);
-        gfx.bar(mob.hp, mob.hp_max, 0xFF0000);
+        gfx.bar(mob.hp, mob.hp_max, colors.blood_light);
         gfx.restore();
     }
 
@@ -1364,9 +1364,9 @@ fn updateGameState() void {
     sfx.music_menu = game_state != 1 or hero_visible < hero_visible_thr;
     switch (game_state) {
         0 => {
-            setText(100, "FRI3", FPVec2.init(hero.x, hero.y - (128 << fbits)), 0xFF0000, 10);
-            setText(101, "TAP TO START", FPVec2.init(hero.x, hero.y + (64 << fbits)), 0x880000, 4);
-            setText(102, "js13k game by\n\nIlya Kuzmichev\n&\nAlexandra Alhovik", FPVec2.init(hero.x, hero.y + (128 << fbits)), 0xCCCCCC, 2);
+            setText(100, "FRI3", FPVec2.init(hero.x, hero.y - (128 << fbits)), colors.blood_light, 10);
+            setText(101, "TAP TO START", FPVec2.init(hero.x, hero.y + (64 << fbits)), colors.paper, 4);
+            setText(102, "js13k game by\n\nIlya Kuzmichev\n&\nAlexandra Alhovik", FPVec2.init(hero.x, hero.y + (128 << fbits)), colors.paper, 2);
 
             if (game_state_tics == 1) {
                 no_black_screen_target = 4;
@@ -1401,13 +1401,13 @@ fn updateGameState() void {
             }
             if (hero_hp == 0) {
                 no_black_screen_target = 4;
-                setText(100, "BIRTHDAY FAILED", FPVec2.init(hero.x, hero.y - (128 << fbits)), 0xFF0000, 10);
-                setText(101, "no one is afraid of 13...", FPVec2.init(hero.x, hero.y + (64 << fbits)), 0xFFFFFF, 4);
+                setText(100, "PARTY FAILED", FPVec2.init(hero.x, hero.y - (96 << fbits)), colors.blood_light, 10);
+                setText(101, "no one is afraid of 13...", FPVec2.init(hero.x, hero.y + (48 << fbits)), colors.paper, 4);
                 // if (camera.zoom > 0.5) {
                 //     camera.zoom -= 0.001;
                 // }
                 if (game_state_tics > 128) {
-                    setText(102, "tap to restart", FPVec2.init(hero.x, hero.y + (128 << fbits)), 0xCCCCCC, 2);
+                    setText(102, "tap to restart", FPVec2.init(hero.x, hero.y + (96 << fbits)), colors.paper, 3);
                     if (gain.pointers.primary()) |p| {
                         if (p.down) {
                             setGameState(1);
@@ -1422,10 +1422,10 @@ fn updateGameState() void {
             }
         },
         2 => {
-            setText(100, "YEAR COMPLETED", FPVec2.init(hero.x, hero.y - (128 << fbits)), 0xFF0000, 10);
-            setText(101, "why are you scared of 13?", FPVec2.init(hero.x, hero.y + (64 << fbits)), 0xFF0000, 4);
+            setText(100, "YEAR COMPLETED", FPVec2.init(hero.x, hero.y - (96 << fbits)), colors.blood_light, 10);
+            setText(101, "why are you scared of 13?", FPVec2.init(hero.x, hero.y + (48 << fbits)), colors.blood_light, 4);
             if (game_state_tics > 128) {
-                setText(102, "tap to start\nthe next year", FPVec2.init(hero.x, hero.y + (128 << fbits)), 0xCCCCCC, 2);
+                setText(102, "tap to start\nthe next year", FPVec2.init(hero.x, hero.y + (96 << fbits)), colors.star, 3);
                 if (gain.pointers.primary()) |p| {
                     if (p.down) {
                         level += 1;
@@ -1453,6 +1453,6 @@ fn drawBlackOverlay() void {
             0x00000000,
             no_black_screen_t << 4,
         ));
-        gfx.rect_(FPRect.init(0, 0, @intCast(app.w), @intCast(app.h)));
+        gfx.quad_(0, 0, @bitCast(app.w), @bitCast(app.h));
     }
 }
