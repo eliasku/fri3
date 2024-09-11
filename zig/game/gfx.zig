@@ -79,13 +79,21 @@ pub fn deadHead(skin_color: u32) void {
     rect_(FPRect.init(0, 0, 0, 4 << fbits).expandInt(5));
 }
 
-pub fn knife(dist: i32) void {
-    colorRGB(0x333333);
-    line(dist, 0, dist + (2 << fbits), 0, 2 << fbits, 2 << fbits);
-    colorRGB(0x999999);
-    line(dist + (2 << fbits), 0, dist + (10 << fbits), -2 << fbits, 2 << fbits, 3 << fbits);
-    colorRGB(0xDDDDDD);
-    line(dist + (10 << fbits), -2 << fbits, dist + (14 << fbits), -5 << fbits, 3 << fbits, 2 << fbits);
+pub fn knife(dist: i32, level: i32) void {
+    if (level > 0) {
+        colorRGB(0x333333);
+        line(dist, 0, dist + (2 << fbits), 0, 2 << fbits, 2 << fbits);
+        colorRGB(0x999999);
+        line(dist + (2 << fbits), 0, dist + (10 << fbits), -2 << fbits, 2 << fbits, 3 << fbits);
+    }
+    if (level > 1) {
+        colorRGB(0xDDDDDD);
+        line(dist + (10 << fbits), -2 << fbits, dist + (14 << fbits), -5 << fbits, 3 << fbits, 2 << fbits);
+    }
+    if (level > 2) {
+        colorRGB(colors.blood_dark);
+        line(dist + (10 << fbits), 0 << fbits, dist + (14 << fbits), -1 << fbits, 8 << fbits, 8 << fbits);
+    }
 }
 
 pub fn guardWeapon(dist: i32) void {
@@ -208,13 +216,22 @@ pub fn banner13() void {
 }
 
 pub fn bar(val: i32, max: i32, c: u32) void {
-    const hw = (max * 4) >> 1;
+    const hw = max << 1;
     colorRGB(c);
-    rect_(FPRect.fromInt(-hw + 2, -2, val * 4, 4));
+    rect_(FPRect.fromInt(-hw + 1, -1, val << 2, 2));
     colorRGB(Color32.lerp8888b(0x0, c, 0x40));
-    rect_(FPRect.fromInt(-hw + 2, -2, max * 4, 4));
+    rect_(FPRect.fromInt(-hw + 1, -1, max << 2, 2));
     colorRGB(colors.black);
-    rect_(FPRect.fromInt(-hw, -4, 4 + max * 4, 8));
+    rect_(FPRect.fromInt(-hw, -2, 2 + (max << 2), 4));
+}
+
+pub fn barUI(val: i32, max: i32, c: u32) void {
+    colorRGB(c);
+    rect_(FPRect.fromInt(2, -2, val << 2, 4));
+    colorRGB(Color32.lerp8888b(0x0, c, 0x40));
+    rect_(FPRect.fromInt(2, -2, max << 2, 4));
+    colorRGB(colors.black);
+    rect_(FPRect.fromInt(0, -4, 4 + (max << 2), 8));
 }
 
 pub fn attackCircle(x: i32, y: i32, t: i32) void {

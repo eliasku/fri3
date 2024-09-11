@@ -76,7 +76,7 @@ pub fn draw() void {
                     gfx.hockeyMask(p.color);
                 },
                 3 => {
-                    gfx.knife(0);
+                    gfx.knife(0, 2);
                 },
                 else => {
                     gfx.colorRGB(p.color);

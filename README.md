@@ -63,5 +63,6 @@ Unrestricted
 # 11 sep
 13054 - xp, level up, optimizations
 13065 - larger zoom, pushEx
+13075 - progression (removed items)
 
-- [ ] win screen chat texts over titles, gameplay continues
+- [x] win screen chat texts over titles, gameplay continues
