@@ -1,5 +1,7 @@
 const fp32 = @import("fp32.zig");
 const FPRect = @import("FPRect.zig");
+const FPVec2 = @import("FPVec2.zig");
+const gain = @import("../gain/main.zig");
 
 const fbits = fp32.fbits;
 pub const Cell = u8;
@@ -8,6 +10,7 @@ pub const size = 1 << size_bits;
 pub const size_mask = size - 1;
 pub var map: [1 << (size_bits << 1)]Cell = undefined;
 pub var colors: [1 << (size_bits << 1)]u8 = undefined;
+pub var gen: [1 << (size_bits << 1)]u8 = undefined;
 
 pub const cell_size_bits = 5 + fbits;
 pub const cell_size = 1 << cell_size_bits;
@@ -34,6 +37,16 @@ pub fn set(x: anytype, y: anytype, v: Cell) void {
     colors[i] = current_color % 6;
 }
 
+pub fn setGen(x: i32, y: i32) void {
+    @setRuntimeSafety(false);
+    gen[addr(x, y)] = 1;
+}
+
+pub fn isGenFree(x: i32, y: i32) bool {
+    @setRuntimeSafety(false);
+    return gen[addr(x, y)] == 0;
+}
+
 pub fn getPoint(x: i32, y: i32) Cell {
     const cx = @max(0, x) >> cell_size_bits;
     const cy = @max(0, y) >> cell_size_bits;
@@ -51,6 +64,13 @@ pub fn testRect(rc: FPRect) bool {
         testPoint(rc.r(), rc.b());
 }
 
+pub fn coordToPos(x: i32, y: i32) FPVec2 {
+    return .{
+        .x = (x << cell_size_bits) + cell_size_half,
+        .y = (y << cell_size_bits) + cell_size_half,
+    };
+}
+
 // path find
 
 const path_max = 16;
@@ -66,7 +86,7 @@ var pf_parent_y: [path_max]i32 = undefined;
 fn visitNeighbor(x: i32, y: i32, depth: usize) void {
     if (x > 0 and y > 0 and x < size - 1 and y < size - 1) {
         const i = addr(x, y);
-        if (pf_visited[i] == 0 and map[i] != 0) {
+        if (pf_visited[i] == 0 and map[i] == 1) {
             pf_visited[i] = 1;
             searchPath(x, y, depth + 1);
             pf_visited[i] = 0;
@@ -98,10 +118,10 @@ fn searchPath(x: i32, y: i32, depth: usize) void {
 
 pub fn findPath(bx: i32, by: i32, ex: i32, ey: i32) void {
     path_num = 0;
-    path_dest_x = ex;
-    path_dest_y = ey;
-    const i = addr(bx, by);
+    path_dest_x = ex >> cell_size_bits;
+    path_dest_y = ey >> cell_size_bits;
+    const i = addr(bx >> cell_size_bits, by >> cell_size_bits);
     pf_visited[i] = 1;
-    searchPath(bx, by, 0);
+    searchPath(bx >> cell_size_bits, by >> cell_size_bits, 0);
     pf_visited[i] = 0;
 }

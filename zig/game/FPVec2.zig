@@ -1,5 +1,6 @@
 const fp32 = @import("fp32.zig");
 const Self = @This();
+const map = @import("map.zig");
 
 x: i32,
 y: i32,

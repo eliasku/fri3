@@ -78,3 +78,7 @@ pub inline fn test2(self: Self, x: i32, y: i32) bool {
         (x - self.r()) &
         (y - self.b()) & -2147483648) != 0;
 }
+
+pub inline fn contains(self: Self, v: FPVec2) bool {
+    return self.test2(v.x, v.y);
+}

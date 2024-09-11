@@ -1,4 +1,5 @@
 const gain = @import("../gain/main.zig");
+const g = @import("g.zig");
 
 fn playZzfxEx(comptime params: anytype, vol: f32, pan: f32, detune: f32, when: f32) void {
     var audio_buffer: [8 * 4096]f32 = undefined;
@@ -22,7 +23,7 @@ pub fn step(visible: u32) void {
 }
 
 pub fn collect() void {
-    playZzfx(.{ 1, 0.05, 1578, 0, 0.03, 0.15, 1, 0.87, 0, 0, 141, 0.01, 0, 0.1, 0, 0, 0, 0.52, 0.01, 0.04 });
+    playZzfx(.{ 0.5, 0.05, 1578, 0, 0.03, 0.15, 1, 0.87, 0, 0, 141, 0.01, 0, 0.1, 0, 0, 0, 0.52, 0.01, 0.04 });
 }
 
 pub fn hit() void {
@@ -37,6 +38,10 @@ pub fn attack() void {
     playZzfx(.{ 1, 0.05, 300, 0.01, 0.1, 0.05, 0, 1, 0, 0, 0, 0, 0.1, 1, 0, 0, 0.1, 0, 0.05, 0 });
 }
 
+pub fn levelUp() void {
+    playZzfx(.{ 0.5, 0, 100, 0.1, 0.5, 0.5, 1, 0.5, 4, 0, -400, 0.05, 0.05, 0, 0, 10, 0.05, 1, 0.2, 0 });
+}
+
 pub fn update() void {
     updateMusic();
 }
@@ -48,7 +53,7 @@ var music_bar: u32 = 0;
 const gen_music_bars = 1;
 pub var music_menu = false;
 fn updateMusic() void {
-    const time: f32 = @as(f32, @floatFromInt(gain.app.tic)) * 60 / 1000;
+    const time: f32 = @as(f32, @floatFromInt(gain.app.tic)) * (1.0 / 60.0);
     const temp: f32 = if (music_menu) 40 else 80;
     const k: f32 = (60.0 / temp) / 4.0;
     if (time >= music_end_time - k) {
@@ -69,8 +74,8 @@ fn generateNextMusicBar(time: f32, k: f32, cur_time: f32) void {
     if (t >= cur_time) {
         const j = music_bar % 16;
         const i = j & 0x3;
-        if (i == 0) {
-            base_note = @floatFromInt((gain.app.tic * music_bar) % 12);
+        if (j == 0) {
+            base_note = @floatFromInt(g.rnd.next() % 12);
         }
         if (i == 0 or i == 3) {
             playZzfxEx(.{ 1, 0, 100, 2e-3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5e-3, 0 }, 1, 0, 0, t);
@@ -81,14 +86,16 @@ fn generateNextMusicBar(time: f32, k: f32, cur_time: f32) void {
             playZzfxEx(.{ 1, 0, 1e3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.1, 0 }, v, 0, 0, t);
         }
 
-        const note_volume: f32 = if (music_menu) 0.1 else 0.3;
+        const note_volume: f32 = if (music_menu) 0.05 else 0.1;
         //const note: f32 = @floatFromInt(j);
-        if (j != 3) {
-            badNote(note_volume, base_note, t);
-            badNote(note_volume / 2, base_note + 5, t + 2 * k / 4);
-        } else {
-            badNote(note_volume, base_note + 3, t);
-            badNote(note_volume / 2, base_note + 10, t + 2 * k / 4);
+        if (music_menu or g.rnd.next() & 1 == 0) {
+            if (j != 7) {
+                badNote(note_volume, base_note, t);
+                badNote(note_volume / 2, base_note + 5, t + 2 * k / 4);
+            } else {
+                badNote(note_volume, base_note + 3, t);
+                badNote(note_volume / 2, base_note + 10, t + 2 * k / 4);
+            }
         }
 
         t += k;

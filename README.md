@@ -59,3 +59,6 @@ Unrestricted
 
 # 10 sep
 12328 - make text colors and fix guard with invisible hero
+
+# 11 sep
+13054 - xp, level up, optimizations

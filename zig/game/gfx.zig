@@ -65,6 +65,11 @@ pub fn cross(rc: FPRect) void {
     line(rc.x, rc.b(), rc.r(), rc.y, 1 << fbits, 1 << fbits);
 }
 
+pub fn crossWide(rc: FPRect) void {
+    line(rc.x, rc.y, rc.r(), rc.b(), 4 << fbits, 2 << fbits);
+    line(rc.x, rc.b(), rc.r(), rc.y, 3 << fbits, 4 << fbits);
+}
+
 pub fn deadHead(skin_color: u32) void {
     const eye = FPRect.fromInt(-1, -2, 2, 4);
     colorRGB(colors.black);

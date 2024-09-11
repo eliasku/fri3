@@ -25,7 +25,7 @@ const Particle = struct {
     rc: FPRect,
 };
 
-const particles_max = 2048;
+const particles_max = 4096;
 var particles: [particles_max]Particle = undefined;
 var particles_num: u32 = 0;
 
@@ -106,7 +106,7 @@ pub fn addPart(x: i32, y: i32, color: u32, spr: u32, rc: FPRect) void {
         particles[particles_num] = .{
             .x = x,
             .y = y,
-            .z = g.rnd.int(0, 20 << fp32.fbits),
+            .z = 16 << fp32.fbits,
             .vx = fp32.fromFloat(d * gain.math.costau(a)),
             .vy = fp32.fromFloat(d * gain.math.sintau(a) / 2),
             .vz = 1 << fp32.fbits,
