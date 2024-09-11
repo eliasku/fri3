@@ -714,7 +714,7 @@ fn getInputVector(speed: i32) FPVec2 {
 
     if (gain.pointers.primary()) |p| {
         if (p.is_down) {
-            const dist = camera.ui_scale * (64 << fbits);
+            const dist = camera.ui_scale * (48 << fbits);
             const d = p.pos.sub(p.start);
             const l = d.length();
             if (l > dist / 2) {
@@ -1150,9 +1150,9 @@ fn drawVPad() void {
             const scale = camera.ui_scale;
             const q = FPVec2.init(@intFromFloat(p.pos.x), @intFromFloat(p.pos.y));
             const s = FPVec2.init(@intFromFloat(p.start.x), @intFromFloat(p.start.y));
-            const r = fp32.scale(fp32.fromInt(32), scale);
-            const r2 = fp32.scale(fp32.fromInt(64 + 32 - 8), scale);
-            const r3 = fp32.scale(fp32.fromInt(64 + 32), scale);
+            const r = fp32.scale(fp32.fromInt(64), scale);
+            const r2 = fp32.scale(fp32.fromInt(128 - 8), scale);
+            const r3 = fp32.scale(fp32.fromInt(128), scale);
             gain.gfx.state.z = (1 << 15) << fbits;
             gfx.color(0x33333333);
             gfx.circle(s.x, s.y, r3, r3, 64);
@@ -1256,23 +1256,21 @@ pub fn render() void {
 
 fn drawHUD() void {
     gain.gfx.state.z = (1 << 15) << fbits;
-    //gfx.state.matrix = Mat2d.identity();
-    const m = Mat2d
+    gain.gfx.state.matrix = Mat2d
         .identity()
         .translate(Vec2.fromIntegers(app.w >> 1, 0))
         .scale(Vec2.splat(camera.ui_scale))
-        .translate(Vec2.fromIntegers((-(512 << fbits) >> 1), 20 << fbits));
-    gain.gfx.state.matrix = m;
+        .translate(Vec2.fromIntegers((-(512 << fbits) >> 1), 24 << fbits));
 
-    gfx.push(42 << fbits, (8 + 30) << fbits, 0);
+    gfx.pushEx(42 << fbits, (8 + 30) << fbits, 0, 2);
     gfx.hockeyMask(colors.white);
     gfx.restore();
 
-    gfx.push(86 << fbits, (8 + 24) << fbits, -0.01);
+    gfx.pushEx(128 << fbits, (32) << fbits, -0.01, 2);
     gfx.bar(hero_hp, hero_hp_max, colors.blood_light);
     gfx.restore();
 
-    gfx.push(86 << fbits, (8 + 34) << fbits, -0.005);
+    gfx.pushEx(128 << fbits, (48) << fbits, -0.005, 2);
     gfx.bar(hero_xp, hero_xp_max, colors.green_light);
     gfx.restore();
 
@@ -1281,18 +1279,17 @@ fn drawHUD() void {
     for (0..13) |i| {
         var rc = FPRect.init(0, 0, 0, 0);
 
-        gain.gfx.state.matrix = m.translate(Vec2.fromIntegers(ix, 0)).rotate(0.1);
+        gfx.pushEx(ix, 0, 0.02, 2);
         if (kills + i >= 13) {
-            rc = rc.expandInt(8);
+            rc = rc.expandInt(3);
             gfx.colorRGB(colors.blood_dark);
             gfx.crossWide(rc);
         }
-        //gfx.state.matrix = gfx.state.matrix.rotate(0.1);
         gfx.colorRGB(colors.paper);
-        gfx.rect_(rc.expandInt(10));
+        gfx.rect_(rc.expandInt(5));
         gfx.colorRGB(colors.black);
-        gfx.rect_(rc.expandInt(12).translate(1 << fbits, 1 << fbits));
-
+        gfx.rect_(rc.expandInt(7).translate(1 << fbits, 1 << fbits));
+        gfx.restore();
         ix -= space_x;
     }
 }

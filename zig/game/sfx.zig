@@ -1,12 +1,17 @@
 const gain = @import("../gain/main.zig");
 const g = @import("g.zig");
 
-fn playZzfxEx(comptime params: anytype, vol: f32, pan: f32, detune: f32, when: f32) void {
-    var audio_buffer: [8 * 4096]f32 = undefined;
-    const len = gain.zzfx.buildSamples(gain.zzfx.ZzfxParameters.fromSlice(params), &audio_buffer);
+var audio_buffer: [8 * 4096]f32 = undefined;
+
+fn playZzfxFromParams(params: gain.zzfx.ZzfxParameters, vol: f32, pan: f32, detune: f32, when: f32) void {
+    const len = gain.zzfx.buildSamples(params, &audio_buffer);
     if (gain.js.enabled) {
         gain.js.playUserAudioBuffer(&audio_buffer, len, vol, pan, detune, when);
     }
+}
+
+fn playZzfxEx(comptime params: anytype, vol: f32, pan: f32, detune: f32, when: f32) void {
+    playZzfxFromParams(gain.zzfx.ZzfxParameters.fromSlice(params), vol, pan, detune, when);
 }
 
 fn playZzfx(comptime params: anytype) void {
@@ -19,7 +24,10 @@ pub fn portal() void {
 
 pub fn step(visible: u32) void {
     const vol: f32 = @as(f32, @floatFromInt(visible)) / 31.0;
-    playZzfxEx(.{ 1, 0.1, 553, 0.02, 0.01, 0, 0, 1.17, -85, 92, 0, 0, 0, 0, 0, 0, 0, 0, 0.01, 0 }, vol, 0, 0, 0);
+    // var params = gain.zzfx.ZzfxParameters.fromSlice(.{ 0, 0.1, 553, 0.02, 0.01, 0, 0, 1.17, -85, 92, 0, 0, 0, 0, 0, 0, 0, 0, 0.01, 0 });
+    // params.volume = vol;
+    // playZzfx(params);
+    playZzfxEx(.{ 0, 0.1, 553, 0.02, 0.01, 0, 0, 1.17, -85, 92, 0, 0, 0, 0, 0, 0, 0, 0, 0.01, 0 }, vol, 0, 0, 0);
 }
 
 pub fn collect() void {

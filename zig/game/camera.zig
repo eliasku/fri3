@@ -14,7 +14,7 @@ pub var matrix: Mat2d = undefined;
 pub var shake_c: i32 = 0;
 const g = @import("g.zig");
 
-const zoom_tweak = 1.5;
+const zoom_tweak = 2;
 pub fn shakeM() void {
     shake_c = 16;
 }

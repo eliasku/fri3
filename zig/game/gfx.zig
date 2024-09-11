@@ -114,6 +114,11 @@ pub fn push(x: i32, y: i32, angle_tau: f32) void {
     gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(x, y)).rotateUnit(angle_tau);
 }
 
+pub fn pushEx(x: i32, y: i32, angle_tau: f32, scale: f32) void {
+    prev_matrix = gfx.state.matrix;
+    gfx.state.matrix = gfx.state.matrix.translate(Vec2.fromIntegers(x, y)).scale(Vec2.splat(scale)).rotateUnit(angle_tau);
+}
+
 pub fn restore() void {
     gfx.state.matrix = prev_matrix;
 }
