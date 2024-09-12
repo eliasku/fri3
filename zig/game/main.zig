@@ -153,7 +153,7 @@ const Mob = struct {
 
 fn placeMob(x: i32, y: i32, kind: u32, male: bool, student: bool) void {
     if (mobs_num < mobs_max) {
-        const max_hp: i32 = if (student) student_hp_max else guard_hp_max;
+        const max_hp: i32 = @as(i32, (if (student) student_hp_max else guard_hp_max)) + @as(i32, @bitCast(level));
         mobs[mobs_num] = .{
             .x = cell_size_half + (x << cell_size_bits),
             .y = cell_size_half + (y << cell_size_bits),
@@ -307,7 +307,7 @@ fn generateZone(rnd: *gain.math.Rnd, parent: FPRect, depth: u32) void {
 fn initLevel() void {
     resetAll();
 
-    var rnd = gain.math.Rnd{ .seed = (31 + level << 1) };
+    var rnd = gain.math.Rnd{ .seed = @bitCast(31 + level << 1) };
 
     zones_num = 0;
     generateZone(&rnd, FPRect.init(2, 2, map.size - 4, map.size - 4), 0);
@@ -337,9 +337,9 @@ fn initLevel() void {
         map.setGen(x, y);
         const iters = 32 + (room_index << 3);
         var portals_gen: u32 = if (room_index > 2) 1 else 0;
-        var items_gen: u32 = 10;
+        var items_gen: u32 = 8;
         var students_gen: u32 = (1 + room_index) << 1;
-        var guards_gen: u32 = if (room_index > 1) (room_index - 1) else 0;
+        var guards_gen: u32 = if (room_index > 0) (room_index + level) << 1 else 0;
         for (0..iters) |_| {
             switch (act) {
                 0 => x = @min(x + 1, zone_rc.r()),
@@ -379,7 +379,11 @@ fn initLevel() void {
                         portals_gen -= 1;
                     },
                     3 => if (items_gen != 0) {
-                        placeItem(x, y, @truncate(rnd.next() & 1));
+                        if (items_num == 0 and level == 0 and room_index == 0) {
+                            placeItem(x, y, 2);
+                        } else {
+                            placeItem(x, y, @truncate(rnd.next() & 1));
+                        }
                         items_gen -= 1;
                     },
                     else => {},
@@ -567,15 +571,15 @@ fn updateMobs() void {
                     }
                 } else {
                     if (g.rnd.next() & 63 == 0) {
-                        var start_index: u32 = 5;
+                        var start_index: u32 = 4;
                         if (mob.danger) {
                             if (mob.is_student) {
                                 start_index = 0;
                             } else {
-                                start_index = 10;
+                                start_index = 8;
                             }
                         }
-                        selectMobText(i, start_index + (g.rnd.next() % 5));
+                        selectMobText(i, start_index + (g.rnd.next() & 3));
                         // pick text index
                     }
                 }
@@ -782,19 +786,24 @@ fn updateHero() void {
         const item = items[i];
         if (item.alive) {
             if (item.inactive == 0 and aabb_item_pick.test2(item.pos.x, item.pos.y)) {
-                if (item.kind == 0) {
-                    if (hero_hp < hero_hp_max) {
+                switch (item.kind) {
+                    0 => if (hero_hp < hero_hp_max) {
                         hero_hp += 1;
                     } else {
                         continue;
-                    }
-                } else {
-                    hero_xp += 1;
-                    if (hero_xp == hero_xp_max) {
-                        hero_xp = 0;
-                        hero_hp = hero_hp_max;
-                        levelup();
-                    }
+                    },
+                    1 => {
+                        hero_xp += 1;
+                        if (hero_xp == hero_xp_max) {
+                            hero_xp = 0;
+                            hero_hp = hero_hp_max;
+                            levelup();
+                        }
+                    },
+                    2 => {
+                        hero_mask = true;
+                    },
+                    else => unreachable,
                 }
                 items[i].alive = false;
                 sfx.collect();
@@ -1073,10 +1082,13 @@ fn drawPortalHoles() void {
         const portal = portals[i];
         const pos = portal.pos;
         if (camera.rc.contains(pos)) {
+            const s = 1.0 + gain.math.sintau(fp32.toFloat(@bitCast(app.tic)) / 8) / 16.0;
+            gfx.pushEx(pos.x, pos.y, 0, s);
             gfx.colorRGB(colors.cosmos);
-            gfx.circle(pos.x, pos.y, cell_size_half, cell_size_half >> 1, 32);
+            gfx.circle(0, 0, cell_size_half, cell_size_half >> 1, 32);
             gfx.colorRGB(colors.blood_dark);
-            gfx.circle(pos.x, pos.y - (1 << fbits), cell_size_half, cell_size_half >> 1, 32);
+            gfx.circle(0, 0 - (1 << fbits), cell_size_half, cell_size_half >> 1, 32);
+            gfx.restore();
         }
         const p = portal.dest;
         if (camera.rc.contains(p)) {
@@ -1093,10 +1105,14 @@ fn drawItem(i: usize) void {
     const y = item.pos.y;
     gfx.depth(x, y);
     gfx.push(x, y - (8 << fbits), fp32.toFloat(@bitCast(gain.app.tic + (i << 4))) / 10);
-    gfx.colorRGB(if (item.kind == 0) colors.blood_light else colors.green_light);
-    gfx.rect_(FPRect.fromInt(0, 0, 0, 0).expandInt(2));
-    gfx.colorRGB(colors.cosmos);
-    gfx.rect_(FPRect.fromInt(0, 0, 0, 0).expandInt(4));
+    if (item.kind == 2) {
+        gfx.hockeyMask(colors.paper);
+    } else {
+        gfx.colorRGB(if (item.kind == 0) colors.blood_light else colors.green_light);
+        gfx.rect_(FPRect.fromInt(0, 0, 0, 0).expandInt(2));
+        gfx.colorRGB(colors.cosmos);
+        gfx.rect_(FPRect.fromInt(0, 0, 0, 0).expandInt(4));
+    }
     gfx.restore();
 }
 

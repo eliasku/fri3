@@ -1,33 +1,35 @@
 pub const hero: [10][]const u8 = .{
-    "my name is jason",
+    "i'm jason",
     "today is friday 13th",
-    "happy birthday to me",
+    "wait, i just need to kill you",
     "oh poor students",
-    "they are scared for 13",
-    "i have to harvest 13",
-    "follow js(13)k",
-    "machette",
+    "try my weapon",
+    "i need 13 only",
+    "kill",
     "blood",
     "fear",
+    "yummy",
 };
 
-pub const mob: [15][]const u8 = .{
+pub const mob: [12][]const u8 = .{
     // students fear
-    "aaaaa",
-    "hey!",
-    "run!",
-    "oh my god",
-    "run away!",
+    "madness!",
+    //"psycho!", // you are sick!
+    "help!",
+    "no way to hide!",
+    "i don't want to play",
+
     // lovely npc
     "nice to meet you",
-    "oh lovely day",
+    "lovely day",
     "❤️",
-    "how are you?",
+    //"how are you?",
     "great summer", // holidays
+
     // police
-    "STOP!",
-    "HANDS UP!",
-    "BASTARD!",
-    "I'll get you!",
-    "drop the knife!",
+    "i'll stop you!",
+    "hands up!",
+    "sick bastard!",
+    // "drop the knife!",
+    "i need your weapon",
 };

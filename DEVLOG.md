@@ -67,3 +67,11 @@ Unrestricted
 13093 - fix wasm instantiate because of js13games hosting has wrong mime type for `wasm` files
 
 - [x] win screen chat texts over titles, gameplay continues
+
+- [x] main character texts: "-"
+- [x] main character pick mask at first room
+- [x] more guards
+- [ ] fix balance on levelup
+- [ ] increase HP and Damage on next years
+
+13179 - texts, mask item, some balance
