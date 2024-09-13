@@ -75,3 +75,9 @@ Unrestricted
 - [ ] increase HP and Damage on next years
 
 13179 - texts, mask item, some balance
+
+# 13 sep
+
+Submit!
+
+13143 - remove <title> and icon from `index.html`
