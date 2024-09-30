@@ -22,15 +22,16 @@ const Hero = struct {
 };
 
 const Item = struct {
+    id: usize,
     pos: FPVec2,
     vel: FPVec2,
     kind: u8,
     inactive: u8,
-    alive: bool,
     magnit: bool,
 
     fn onMap(x: i32, y: i32, kind: u8) Item {
         return .{
+            .id = items.len,
             .pos = map.coordToPos(x, y),
             .vel = .{
                 .x = 0,
@@ -38,7 +39,6 @@ const Item = struct {
             },
             .kind = kind,
             .inactive = 0,
-            .alive = true,
             .magnit = false,
         };
     }
@@ -87,21 +87,18 @@ const Portal = struct {
     dest: FPVec2,
 };
 
-const portals_max = 32;
-var portals: [portals_max]Portal = undefined;
-var portals_num: u32 = undefined;
+const PortalsArray = std.BoundedArray(Portal, 32);
+var portals: PortalsArray = undefined;
 
 fn addPortal(x: i32, y: i32, dx: i32, dy: i32, sx: i32, sy: i32) void {
-    if (portals_num < portals_max) {
-        portals[portals_num] = .{
-            .pos = map.coordToPos(x, y),
-            .dest = map.coordToPos(dx, dy),
-            .src = map.coordToPos(sx, sy),
-        };
-        portals_num += 1;
-        map.setGen(x, y);
-        map.setGen(dx, dy);
-    }
+    const portal = portals.addOne() catch return;
+    portal.* = .{
+        .pos = map.coordToPos(x, y),
+        .dest = map.coordToPos(dx, dy),
+        .src = map.coordToPos(sx, sy),
+    };
+    map.setGen(x, y);
+    map.setGen(dx, dy);
 }
 
 const ForcedMove = struct {
@@ -127,6 +124,7 @@ const student_hp_max = 4;
 const guard_hp_max = 8;
 const hit_timer_max = 31;
 const Mob = struct {
+    id: usize,
     x: i32,
     y: i32,
     kind: u8,
@@ -152,41 +150,40 @@ const Mob = struct {
 };
 
 fn placeMob(x: i32, y: i32, kind: u32, male: bool, student: bool) void {
-    if (mobs_num < mobs_max) {
-        const max_hp: i32 = @as(i32, (if (student) student_hp_max else guard_hp_max)) + @as(i32, @bitCast(level));
-        mobs[mobs_num] = .{
-            .x = cell_size_half + (x << cell_size_bits),
-            .y = cell_size_half + (y << cell_size_bits),
-            .kind = @truncate(kind),
-            .move_timer = 0,
-            .lx = 0,
-            .ly = 0,
-            .forced = ForcedMove.zero(),
-            .ai_timer = 0,
-            .hp_max = max_hp,
-            .hp = max_hp,
-            .hit_timer = 0,
-            .target_map_x = 0,
-            .target_map_y = 0,
-            .danger_t = 0,
-            .danger = false,
-            .attention = 0,
-            .male = male,
-            .text_t = 0,
-            .text_i = 0,
-            .is_student = student,
-            .attack_t = 0,
-            .bleed = 0,
-        };
-        mobs_num += 1;
+    const mob = mobs.addOne() catch return;
+    const max_hp: i32 = @as(i32, (if (student) student_hp_max else guard_hp_max)) + @as(i32, @bitCast(level));
+    mob.* = .{
+        .id = mobs.len,
+        .x = cell_size_half + (x << cell_size_bits),
+        .y = cell_size_half + (y << cell_size_bits),
+        .kind = @truncate(kind),
+        .move_timer = 0,
+        .lx = 0,
+        .ly = 0,
+        .forced = ForcedMove.zero(),
+        .ai_timer = 0,
+        .hp_max = max_hp,
+        .hp = max_hp,
+        .hit_timer = 0,
+        .target_map_x = 0,
+        .target_map_y = 0,
+        .danger_t = 0,
+        .danger = false,
+        .attention = 0,
+        .male = male,
+        .text_t = 0,
+        .text_i = 0,
+        .is_student = student,
+        .attack_t = 0,
+        .bleed = 0,
+    };
 
-        map.setGen(x, y);
-    }
+    map.setGen(x, y);
 }
 
-const mobs_max = 128;
-var mobs: [mobs_max]Mob = undefined;
-var mobs_num: u32 = undefined;
+const MobArray = std.BoundedArray(Mob, 128);
+var mobs: MobArray = undefined;
+
 const mob_hitbox_local = FPRect.fromInt(
     -10,
     -4,
@@ -208,16 +205,13 @@ const item_aabb = FPRect.fromInt(
     16,
 );
 
-const items_max = 128;
-var items: [items_max]Item = undefined;
-var items_num: u32 = undefined;
+const ItemsArray = std.BoundedArray(Item, 128);
+var items: ItemsArray = undefined;
 
 fn placeItem(x: i32, y: i32, kind: u8) void {
-    if (items_num < items_max) {
-        items[items_num] = Item.onMap(x, y, kind);
-        items_num += 1;
-        map.setGen(x, y);
-    }
+    const item = items.addOne() catch return;
+    item.* = Item.onMap(x, y, kind);
+    map.setGen(x, y);
 }
 
 fn spawnItem(x: i32, y: i32, n: u32) void {
@@ -225,7 +219,9 @@ fn spawnItem(x: i32, y: i32, n: u32) void {
         const d = g.rnd.frange(8, 12);
         const a = g.rnd.float();
 
-        items[items_num] = .{
+        const item = items.addOne() catch return;
+        item.* = .{
+            .id = items.len,
             .pos = .{
                 .x = x,
                 .y = y,
@@ -236,10 +232,8 @@ fn spawnItem(x: i32, y: i32, n: u32) void {
             },
             .kind = 1,
             .inactive = 8,
-            .alive = true,
             .magnit = true,
         };
-        items_num += 1;
     }
 }
 
@@ -265,9 +259,9 @@ fn resetAll() void {
     @memset(&map.map, 0);
     @memset(&map.colors, 0);
     @memset(&map.gen, 0);
-    items_num = 0;
-    mobs_num = 0;
-    portals_num = 0;
+    items.len = 0;
+    mobs.len = 0;
+    portals.len = 0;
     kills = 0;
     hero_level_up = 0;
     particles.reset();
@@ -373,13 +367,13 @@ fn initLevel() void {
                         guards_gen -= 1;
                         mob_kind_i +%= 1;
                     },
-                    2 => if (portals_num > 2 and portals_gen > 0) {
-                        const p = portals[portals_num - 1];
+                    2 => if (portals.len > 2 and portals_gen > 0) {
+                        const p = portals.get(portals.len - 1);
                         addPortal(x, y, p.src.x >> cell_size_bits, p.src.y >> cell_size_bits, room_x, room_y);
                         portals_gen -= 1;
                     },
                     3 => if (items_gen != 0) {
-                        if (items_num == 0 and level == 0 and room_index == 0) {
+                        if (items.len == 0 and level == 0 and room_index == 0) {
                             placeItem(x, y, 2);
                         } else {
                             placeItem(x, y, @truncate(rnd.next() & 1));
@@ -444,8 +438,7 @@ fn addKill() void {
 
 fn updateMobs() void {
     const hero_aabb = hero_ground_aabb_local.translate(hero.x, hero.y).expandInt(16);
-    for (0..mobs_num) |i| {
-        const mob: *Mob = &mobs[i];
+    for (mobs.slice()) |*mob| {
         if (mob.hp != 0) {
             const hero_is_danger = hero_visible > hero_visible_thr and hero_hp != 0;
             const dist_to_hero = fp32.dist(hero.x, hero.y, mob.x, mob.y);
@@ -565,9 +558,9 @@ fn updateMobs() void {
                 if (mob.text_t > 0) {
                     mob.*.text_t -= 1;
                     if (mob.*.text_t == 0) {
-                        clearMobText(i);
+                        clearMobText(mob.id);
                     } else {
-                        setText(@bitCast(i + 1), texts.mob[mob.text_i], FPVec2.init(mob.x, mob.y - (48 << fbits)), colors.paper, 3);
+                        setText(@bitCast(mob.id + 1), texts.mob[mob.text_i], FPVec2.init(mob.x, mob.y - (48 << fbits)), colors.paper, 3);
                     }
                 } else {
                     if (g.rnd.next() & 63 == 0) {
@@ -579,7 +572,7 @@ fn updateMobs() void {
                                 start_index = 8;
                             }
                         }
-                        selectMobText(i, start_index + (g.rnd.next() & 3));
+                        selectMobText(mob, start_index + (g.rnd.next() & 3));
                         // pick text index
                     }
                 }
@@ -603,7 +596,7 @@ fn updateMobs() void {
                         mob.*.bleed = 8;
                         camera.shakeS();
                         if (mob.hp == 0) {
-                            explodeMob(i);
+                            explodeMob(mob);
                             spawnItem(mob.x, mob.y, 4);
                             if (mob.is_student) {
                                 addKill();
@@ -633,16 +626,15 @@ fn updateMobs() void {
 }
 
 fn explodeMobs() void {
-    for (0..mobs_num) |i| {
-        if (mobs[i].hp != 0) {
-            mobs[i].hp = 0;
-            explodeMob(i);
+    for (mobs.slice()) |*mob| {
+        if (mob.hp != 0) {
+            mob.*.hp = 0;
+            explodeMob(mob);
         }
     }
 }
 
-fn explodeMob(index: u32) void {
-    const mob = mobs[index];
+fn explodeMob(mob: *Mob) void {
     const x = mob.x;
     const y = mob.y;
     var c = getMobColor(mob.kind);
@@ -657,7 +649,7 @@ fn explodeMob(index: u32) void {
     particles.addPart(x, y, c, 4, rc);
     particles.addPart(x, y, c, 4, rc);
     particles.addPart(x, y, c, 4, FPRect.init(0, 0, 0, 0).expandInt(5));
-    clearMobText(index);
+    clearMobText(mob.id);
 }
 
 fn hitHero() void {
@@ -686,9 +678,9 @@ fn hitHero() void {
     camera.shakeS();
 }
 
-fn selectMobText(i: u32, phrase: u32) void {
-    mobs[i].text_i = phrase;
-    mobs[i].text_t = texts.mob[phrase].len << 2;
+fn selectMobText(mob: *Mob, phrase: u32) void {
+    mob.*.text_i = phrase;
+    mob.*.text_t = texts.mob[phrase].len << 2;
 }
 
 fn clearMobText(i: u32) void {
@@ -782,45 +774,47 @@ fn updateHero() void {
 
     const aabb = hero_ground_aabb_local.translate(hero.x, hero.y);
     const aabb_item_pick = aabb.expandInt(8);
-    for (0..items_num) |i| {
-        const item = items[i];
-        if (item.alive) {
-            if (item.inactive == 0 and aabb_item_pick.test2(item.pos.x, item.pos.y)) {
-                switch (item.kind) {
-                    0 => if (hero_hp < hero_hp_max) {
-                        hero_hp += 1;
-                    } else {
-                        continue;
-                    },
-                    1 => {
-                        hero_xp += 1;
-                        if (hero_xp == hero_xp_max) {
-                            hero_xp = 0;
-                            hero_hp = hero_hp_max;
-                            levelup();
-                        }
-                    },
-                    2 => {
-                        hero_mask = true;
-                    },
-                    else => unreachable,
-                }
-                items[i].alive = false;
-                sfx.collect();
+    var i: usize = 0;
+    while (i < items.len) {
+        const item = &items.slice()[i];
+        if (item.inactive == 0 and aabb_item_pick.test2(item.pos.x, item.pos.y)) {
+            switch (item.kind) {
+                0 => if (hero_hp < hero_hp_max) {
+                    hero_hp += 1;
+                } else {
+                    i += 1;
+                    continue;
+                },
+                1 => {
+                    hero_xp += 1;
+                    if (hero_xp == hero_xp_max) {
+                        hero_xp = 0;
+                        hero_hp = hero_hp_max;
+                        levelup();
+                    }
+                },
+                2 => {
+                    hero_mask = true;
+                },
+                else => unreachable,
             }
-            if (item.inactive != 0) {
-                items[i].inactive -= 1;
-            }
-            if (item.magnit) {
-                if (item.inactive == 0) {
-                    const vt = FPVec2.init(hero.x - item.pos.x, hero.y - item.pos.y).rescale(8 << fbits);
-                    items[i].vel.x = item.vel.x + ((vt.x - item.vel.x) >> 4);
-                    items[i].vel.y = item.vel.y + ((vt.y - item.vel.y) >> 4);
-                }
-                items[i].pos.x += item.vel.x;
-                items[i].pos.y += item.vel.y;
-            }
+            sfx.collect();
+            _ = items.swapRemove(i);
+            continue;
         }
+        if (item.inactive != 0) {
+            item.*.inactive -= 1;
+        }
+        if (item.magnit) {
+            if (item.inactive == 0) {
+                const vt = FPVec2.init(hero.x - item.pos.x, hero.y - item.pos.y).rescale(8 << fbits);
+                item.*.vel.x = item.vel.x + ((vt.x - item.vel.x) >> 4);
+                item.*.vel.y = item.vel.y + ((vt.y - item.vel.y) >> 4);
+            }
+            item.*.pos.x += item.vel.x;
+            item.*.pos.y += item.vel.y;
+        }
+        i += 1;
     }
 
     if (map.getPoint(aabb.cx(), aabb.cy()) > 1) {
@@ -855,10 +849,10 @@ fn updateGame() void {
 }
 
 fn pointInPortal(x: i32, y: i32) ?*Portal {
-    for (0..portals_num) |i| {
-        const pos = portals[i].pos;
+    for (portals.slice()) |*portal| {
+        const pos = portal.pos;
         if (fp32.dist(x, y, pos.x, pos.y) < (12 << fbits)) {
-            return &portals[i];
+            return portal;
         }
     }
     return null;
@@ -867,12 +861,12 @@ fn pointInPortal(x: i32, y: i32) ?*Portal {
 fn findClosestPortal(x: i32, y: i32) ?*Portal {
     var min_dist: i32 = 1000000;
     var min_portal: ?*Portal = null;
-    for (0..portals_num) |i| {
-        const pos = portals[i].pos;
+    for (portals.slice()) |*portal| {
+        const pos = portal.pos;
         const dist = fp32.dist(x, y, pos.x, pos.y);
         if (dist < min_dist) {
             min_dist = dist;
-            min_portal = &portals[i];
+            min_portal = portal;
         }
     }
     return min_portal;
@@ -955,7 +949,7 @@ fn unsetText(handle: i32) void {
 }
 
 fn unsetAllTexts() void {
-    for (0..mobs_max + 3) |i| {
+    for (0..mobs.buffer.len + 3) |i| {
         unsetText(@bitCast(i));
     }
 }
@@ -1078,8 +1072,7 @@ fn drawManShadow(x: i32, y: i32, move_timer: i32) void {
 
 fn drawPortalHoles() void {
     gain.gfx.state.z = 3 << fbits;
-    for (0..portals_num) |i| {
-        const portal = portals[i];
+    for (portals.constSlice()) |portal| {
         const pos = portal.pos;
         if (camera.rc.contains(pos)) {
             const s = 1.0 + gain.math.sintau(fp32.toFloat(@bitCast(app.tic)) / 8) / 16.0;
@@ -1099,12 +1092,11 @@ fn drawPortalHoles() void {
     }
 }
 
-fn drawItem(i: usize) void {
-    const item = items[i];
+fn drawItem(item: Item) void {
     const x = item.pos.x;
     const y = item.pos.y;
     gfx.depth(x, y);
-    gfx.push(x, y - (8 << fbits), fp32.toFloat(@bitCast(gain.app.tic + (i << 4))) / 10);
+    gfx.push(x, y - (8 << fbits), fp32.toFloat(@bitCast(gain.app.tic + (item.id << 4))) / 10);
     if (item.kind == 2) {
         gfx.hockeyMask(colors.paper);
     } else {
@@ -1124,8 +1116,7 @@ fn getMobTrousesColor(kind: u8) u32 {
     return colors.mob_trouses[kind];
 }
 
-fn drawMob(i: usize) void {
-    const mob = mobs[i];
+fn drawMob(mob: *Mob) void {
     var x = mob.x;
     var y = mob.y;
 
@@ -1196,17 +1187,15 @@ pub fn render() void {
     }
     drawHero();
 
-    for (0..items_num) |i| {
-        const item = items[i];
-        if (item.alive and camera.rc.test2(item.pos.x, item.pos.y)) {
-            drawItem(i);
+    for (items.slice()) |item| {
+        if (camera.rc.test2(item.pos.x, item.pos.y)) {
+            drawItem(item);
         }
     }
 
-    for (0..mobs_num) |i| {
-        const mob = mobs[i];
+    for (mobs.slice()) |*mob| {
         if (mob.hp != 0 and camera.rc.test2(mob.x, mob.y)) {
-            drawMob(i);
+            drawMob(mob);
         }
     }
 
@@ -1234,8 +1223,7 @@ pub fn render() void {
     }
     particles.drawShadows();
 
-    for (0..mobs_num) |i| {
-        const mob = mobs[i];
+    for (mobs.slice()) |mob| {
         if (mob.hp != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
             drawManShadow(mob.x, mob.y, mob.move_timer);
             if (g.is_debug) {
@@ -1245,9 +1233,8 @@ pub fn render() void {
         }
     }
 
-    for (0..items_num) |i| {
-        const item = items[i];
-        if (item.alive and camera.rc.test2(item.pos.x, item.pos.y)) {
+    for (items.slice()) |item| {
+        if (camera.rc.test2(item.pos.x, item.pos.y)) {
             gfx.shadow(item.pos.x, item.pos.y, 8 << fbits);
         }
     }
@@ -1257,8 +1244,7 @@ pub fn render() void {
         gfx.attackCircle(hero.x, hero.y, hero_attack_t);
     }
 
-    for (0..mobs_num) |i| {
-        const mob = mobs[i];
+    for (mobs.slice()) |mob| {
         if (mob.hp != 0 and mob_quad_local.translate(mob.x, mob.y).overlaps(camera.rc)) {
             if (mob.attack_t > 15) {
                 gfx.attackCircle(mob.x, mob.y, mob.attack_t);
